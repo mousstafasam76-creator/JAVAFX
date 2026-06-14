@@ -2,6 +2,8 @@ package com.inapp;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
+import javafx.scene.Scene;
+
 import com.inapp.utils.NavigationManager;
 import com.inapp.view.auth.Login;
 import com.inapp.view.auth.Signin;
@@ -10,6 +12,8 @@ import com.inapp.view.auth.Logout;
 import com.inapp.view.admin.Dashboard;
 import com.inapp.view.components.AdminSidebar;
 import com.inapp.view.components.Footer;
+import com.inapp.view.front.facture.FactureMainView;
+
 import javafx.scene.layout.BorderPane;
 
 public class MainApplication extends Application {
@@ -34,7 +38,9 @@ public class MainApplication extends Application {
         // Tous les menus de la sidebar blanche pointent vers le même frontDashboard
         navigationManager.registerView("dashboard", frontDashboard);
         navigationManager.registerView("commandes", frontDashboard);
-        navigationManager.registerView("factures", frontDashboard);
+        // Enregistrer la vue facture
+        FactureMainView factureMainView = new FactureMainView(navigationManager);
+        navigationManager.registerView("factures", factureMainView.getView());
         navigationManager.registerView("categories", frontDashboard);
         navigationManager.registerView("products", frontDashboard);
         navigationManager.registerView("clients", frontDashboard);
@@ -51,6 +57,12 @@ public class MainApplication extends Application {
 
         // Page de démarrage
         navigationManager.navigateTo("login");
+
+        // Charger le CSS sur la scène
+        Scene scene = primaryStage.getScene();
+        if (scene != null) {
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        }
 
         primaryStage.setTitle("PowerStock - Gestion Électroménager");
         primaryStage.setWidth(1400);
