@@ -11,6 +11,8 @@ import com.inapp.view.admin.Dashboard;
 import com.inapp.view.components.AdminSidebar;
 import com.inapp.view.components.Footer;
 import javafx.scene.layout.BorderPane;
+import com.inapp.view.front.categorie.CategoryMainView;
+import com.inapp.view.front.categorie.CategoryMainView;
 
 public class MainApplication extends Application {
 
@@ -35,7 +37,11 @@ public class MainApplication extends Application {
         navigationManager.registerView("dashboard", frontDashboard);
         navigationManager.registerView("commandes", frontDashboard);
         navigationManager.registerView("factures", frontDashboard);
-        navigationManager.registerView("categories", frontDashboard);
+        // ... après la création de frontDashboard
+
+// Enregistrement de la vue catégories AVEC sidebar
+CategoryMainView categoryMainView = new CategoryMainView(navigationManager);
+navigationManager.registerView("categoriesList", categoryMainView);
         navigationManager.registerView("products", frontDashboard);
         navigationManager.registerView("clients", frontDashboard);
         navigationManager.registerView("reports", frontDashboard);
