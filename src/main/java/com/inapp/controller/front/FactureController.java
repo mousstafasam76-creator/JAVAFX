@@ -1,24 +1,28 @@
-package com.inapp.controller.front;
+ package com.inapp.controller.front;
 
 import com.inapp.model.Facture;
 import com.inapp.service.FactureService;
 import com.inapp.view.front.facture.FactureDetail;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import java.util.stream.Collectors;
 
 public class FactureController {
     private FactureService service = new FactureService();
     private ObservableList<Facture> allFactures = FXCollections.observableArrayList();
     private ObservableList<Facture> filteredFactures = FXCollections.observableArrayList();
     
-    // Mémorisation des filtres actuels pour réapplication après ajout/modification
     private String currentStatusFilter = "all";
     private String currentSearch = "";
     private String currentDateFilter = "";
 
     public FactureController() {
+        refreshFromDatabase();
+    }
+
+    private void refreshFromDatabase() {
         allFactures.setAll(service.getAllFactures());
-        filteredFactures.setAll(allFactures);
+        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
     }
 
     public ObservableList<Facture> getFilteredFactures() {
@@ -32,16 +36,13 @@ public class FactureController {
         
         filteredFactures.clear();
         for (Facture f : allFactures) {
-            // Filtre statut
             if (statusFilter.equals("paid") && !f.isPayee()) continue;
             if (statusFilter.equals("unpaid") && f.isPayee()) continue;
-            // Filtre texte (numéro facture ou client)
             if (!searchText.isEmpty()) {
                 String lower = searchText.toLowerCase();
                 if (!f.getNomf().toLowerCase().contains(lower) &&
                     !f.getClients().toLowerCase().contains(lower)) continue;
             }
-            // Filtre date
             if (!dateFilter.isEmpty()) {
                 String factureDate = f.getDatef().toLocalDate().toString();
                 if (!factureDate.equals(dateFilter)) continue;
@@ -50,47 +51,19 @@ public class FactureController {
         }
     }
 
-    public void markAsPaid(Facture f) {
-        allFactures.remove(f);
-        Facture paid = new Facture(f.getId(), f.getNomf(), f.getDatef(), 1,
-                                   f.getNbCommandes(), f.getMontantTotal(), f.getClients());
-        allFactures.add(paid);
-        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
-    }
-
-    public void deleteFacture(Facture f) {
-        allFactures.remove(f);
-        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
-    }
-
-    public void markMultipleAsPaid(ObservableList<Facture> selection) {
-        for (Facture f : selection) {
-            allFactures.remove(f);
-            Facture paid = new Facture(f.getId(), f.getNomf(), f.getDatef(), 1,
-                                       f.getNbCommandes(), f.getMontantTotal(), f.getClients());
-            allFactures.add(paid);
+    // CRUD Operations
+    public Facture addFacture(Facture f) {
+        Facture saved = service.addFacture(f);
+        if (saved != null) {
+            allFactures.add(saved);
+            applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
+            FactureDetail.setFactureId(saved.getId());
         }
-        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
+        return saved;
     }
 
-    public void deleteMultiple(ObservableList<Facture> selection) {
-        allFactures.removeAll(selection);
-        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
-    }
-
-    // Ajout d'une facture (mock)
-    public void addFacture(Facture f) {
-        int newId = allFactures.stream().mapToInt(Facture::getId).max().orElse(0) + 1;
-        Facture withId = new Facture(newId, f.getNomf(), f.getDatef(), f.getEtatf(),
-                                     0, 0.0, f.getClients());
-        allFactures.add(withId);
-        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
-        // Rendre l'ID accessible pour la navigation (sera utilisé par la vue détail)
-        FactureDetail.setFactureId(newId);
-    }
-
-    // Modification d'une facture (mock)
     public void updateFacture(Facture updated) {
+        service.updateFacture(updated);
         for (int i = 0; i < allFactures.size(); i++) {
             if (allFactures.get(i).getId() == updated.getId()) {
                 allFactures.set(i, updated);
@@ -100,9 +73,33 @@ public class FactureController {
         applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
     }
 
+    public void markAsPaid(Facture f) {
+        service.markAsPaid(f.getId());
+        refreshFromDatabase();
+    }
+
+    public void deleteFacture(Facture f) {
+        service.deleteFacture(f.getId());
+        allFactures.remove(f);
+        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
+    }
+
+    public void markMultipleAsPaid(ObservableList<Facture> selection) {
+        service.markMultipleAsPaid(selection.stream().map(Facture::getId).collect(Collectors.toList()));
+        refreshFromDatabase();
+    }
+
+    public void deleteMultiple(ObservableList<Facture> selection) {
+        service.deleteMultiple(selection.stream().map(Facture::getId).collect(Collectors.toList()));
+        allFactures.removeAll(selection);
+        applyFilter(currentStatusFilter, currentSearch, currentDateFilter);
+    }
+
     // Statistiques
-    public int getTotal() { return service.getTotal(); }
-    public int getPayees() { return service.getPayees(); }
-    public int getImpayees() { return service.getImpayees(); }
-    public double getTotalImpaye() { return service.getTotalImpaye(); }
+    public int getTotal() { return allFactures.size(); }
+    public int getPayees() { return (int) allFactures.stream().filter(Facture::isPayee).count(); }
+    public int getImpayees() { return getTotal() - getPayees(); }
+    public double getTotalImpaye() {
+        return allFactures.stream().filter(f -> !f.isPayee()).mapToDouble(Facture::getMontantTotal).sum();
+    }
 }

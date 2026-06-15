@@ -1,4 +1,4 @@
-package com.inapp.view.front.facture;
+ package com.inapp.view.front.facture;
 
 import com.inapp.controller.front.FactureController;
 import com.inapp.model.Facture;
@@ -30,36 +30,42 @@ public class FactureMainView {
         root.setCenter(listView.createView());
         root.setLeft(sidebar);
 
-        // Configuration de la navigation
+        // ========== NAVIGATION ==========
 
-        // Liste -> Détail
+        // Liste → Détail
         listView.setNavigateToDetail(() -> root.setCenter(detailView.createView()));
 
-        // Liste -> Formulaire (création)
+        // Liste → Formulaire (création)
         listView.setNavigateToForm(() -> {
             formView.setFactureToEdit(null);
             formView.setOnSave(() -> {
-                // Après création, on va au détail de la nouvelle facture
-                root.setCenter(detailView.createView());
+                // Retour à la liste après création
+                root.setCenter(listView.createView());
             });
             formView.setOnCancel(() -> root.setCenter(listView.createView()));
             root.setCenter(formView.createView());
         });
 
-        // Détail -> Liste
+        // Détail → Liste
         detailView.setBackToList(() -> root.setCenter(listView.createView()));
 
-        // Détail -> Formulaire (édition)
+        // Détail → Formulaire (édition)
         detailView.setNavigateToEdit(() -> {
             Facture facture = controller.getFilteredFactures().stream()
                     .filter(f -> f.getId() == FactureDetail.getFactureId()).findFirst().orElse(null);
             if (facture != null) {
                 formView.setFactureToEdit(facture);
-                formView.setOnSave(() -> root.setCenter(detailView.createView()));
+                formView.setOnSave(() -> {
+                    // Retour au détail après modification
+                    root.setCenter(detailView.createView());
+                });
                 formView.setOnCancel(() -> root.setCenter(detailView.createView()));
                 root.setCenter(formView.createView());
             }
         });
+
+        // Détail → Impression (déjà géré dans FacturePrint)
+        detailView.setNavigateToPrint(() -> FacturePrint.show(FactureDetail.getFactureId()));
     }
 
     public BorderPane getView() {

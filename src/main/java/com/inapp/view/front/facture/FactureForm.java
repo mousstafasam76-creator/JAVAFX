@@ -6,7 +6,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import java.time.LocalDate;
@@ -41,10 +40,10 @@ public class FactureForm {
         titleLabel.setFont(Font.font("System", FontWeight.BOLD, 26));
         titleLabel.setStyle("-fx-text-fill: #171717;");
 
-        Label subtitleLabel = new Label(isEdit ? 
-            "Modifiez les informations de la facture existante." : 
+        Label subtitleLabel = new Label(isEdit ?
+            "Modifiez les informations de la facture existante." :
             "Remplissez les informations pour créer une nouvelle facture.");
-        subtitleLabel.setFont(Font.font("System", FontWeight.NORMAL, 14));
+        subtitleLabel.setFont(Font.font(14));
         subtitleLabel.setStyle("-fx-text-fill: #64748b;");
 
         headerBox.getChildren().addAll(titleLabel, subtitleLabel);
@@ -57,8 +56,7 @@ public class FactureForm {
             "-fx-background-color: white;" +
             "-fx-border-color: #e2e8f0;" +
             "-fx-border-radius: 20px;" +
-            "-fx-background-radius: 20px;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+            "-fx-background-radius: 20px;"
         );
         formCard.setAlignment(Pos.CENTER);
 
@@ -71,17 +69,9 @@ public class FactureForm {
         // === NUMÉRO FACTURE ===
         Label lblNum = new Label("N° Facture");
         lblNum.setFont(Font.font("System", FontWeight.BOLD, 14));
-        lblNum.setStyle("-fx-text-fill: #171717;");
         TextField txtNum = new TextField();
         txtNum.setEditable(false);
-        txtNum.setStyle(
-            "-fx-background-color: #f1f5f9;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 12 16;" +
-            "-fx-font-size: 14px;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12px;"
-        );
+        txtNum.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 12px; -fx-padding: 12 16;");
         txtNum.setPrefWidth(350);
         if (isEdit) {
             txtNum.setText(factureToEdit.getNomf());
@@ -89,55 +79,30 @@ public class FactureForm {
             txtNum.setText("FACT-" + LocalDate.now().getYear() + "-" + String.format("%03d", controller.getTotal() + 1));
         }
 
-        // === CLIENT ===
+        // === CLIENT (à remplacer par une vraie liste depuis la BD plus tard) ===
         Label lblClient = new Label("Client");
         lblClient.setFont(Font.font("System", FontWeight.BOLD, 14));
-        lblClient.setStyle("-fx-text-fill: #171717;");
-        ComboBox<String> cmbClient = new ComboBox<>();
-        cmbClient.getItems().addAll("Amadou Diallo", "Fatou Camara", "Moussa Traoré", "Aminata Keita", "Oumar Sylla");
-        cmbClient.setPromptText("🔍 Choisir un client...");
-        cmbClient.setPrefWidth(350);
-        cmbClient.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 8;" +
-            "-fx-font-size: 14px;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12px;"
-        );
-        if (isEdit) cmbClient.setValue(factureToEdit.getClients());
+        TextField txtClient = new TextField();
+        txtClient.setPromptText("Nom du client...");
+        txtClient.setStyle("-fx-background-color: white; -fx-background-radius: 12px; -fx-padding: 12 16; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
+        txtClient.setPrefWidth(350);
+        if (isEdit) txtClient.setText(factureToEdit.getClients());
 
         // === DATE ===
         Label lblDate = new Label("Date d'émission");
         lblDate.setFont(Font.font("System", FontWeight.BOLD, 14));
-        lblDate.setStyle("-fx-text-fill: #171717;");
         DatePicker datePicker = new DatePicker();
         datePicker.setValue(isEdit ? factureToEdit.getDatef().toLocalDate() : LocalDate.now());
         datePicker.setPrefWidth(350);
-        datePicker.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 8;" +
-            "-fx-font-size: 14px;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12px;"
-        );
+        datePicker.setStyle("-fx-background-radius: 12px; -fx-padding: 8;");
 
         // === STATUT (édition seulement) ===
         Label lblStatut = new Label("Statut du paiement");
         lblStatut.setFont(Font.font("System", FontWeight.BOLD, 14));
-        lblStatut.setStyle("-fx-text-fill: #171717;");
         ComboBox<String> cmbStatut = new ComboBox<>();
         cmbStatut.getItems().addAll("❌ Impayée", "✅ Payée");
         cmbStatut.setPrefWidth(350);
-        cmbStatut.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 8;" +
-            "-fx-font-size: 14px;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12px;"
-        );
+        cmbStatut.setStyle("-fx-background-radius: 12px; -fx-padding: 8;");
         if (isEdit) {
             cmbStatut.setValue(factureToEdit.isPayee() ? "✅ Payée" : "❌ Impayée");
         } else {
@@ -148,11 +113,10 @@ public class FactureForm {
             cmbStatut.setManaged(false);
         }
 
-        // Placement dans la grille
         grid.add(lblNum, 0, 0);
         grid.add(txtNum, 1, 0);
         grid.add(lblClient, 0, 1);
-        grid.add(cmbClient, 1, 1);
+        grid.add(txtClient, 1, 1);
         grid.add(lblDate, 0, 2);
         grid.add(datePicker, 1, 2);
         if (isEdit) {
@@ -166,81 +130,31 @@ public class FactureForm {
         HBox buttonBar = new HBox(15);
         buttonBar.setAlignment(Pos.CENTER_RIGHT);
         buttonBar.setMaxWidth(600);
-        buttonBar.setPadding(new Insets(10, 0, 0, 0));
 
         Button cancelBtn = new Button("Annuler");
-        cancelBtn.setFont(Font.font("System", FontWeight.BOLD, 14));
-        cancelBtn.setStyle(
-            "-fx-background-color: #e2e8f0;" +
-            "-fx-text-fill: #334155;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        );
-        cancelBtn.setOnMouseEntered(e -> cancelBtn.setStyle(
-            "-fx-background-color: #cbd5e1;" +
-            "-fx-text-fill: #0f172a;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        ));
-        cancelBtn.setOnMouseExited(e -> cancelBtn.setStyle(
-            "-fx-background-color: #e2e8f0;" +
-            "-fx-text-fill: #334155;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        ));
+        cancelBtn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #334155; -fx-background-radius: 12px; -fx-padding: 14 28; -fx-cursor: hand;");
         cancelBtn.setOnAction(e -> { if (onCancel != null) onCancel.run(); });
 
-        Button saveBtn = new Button(isEdit ? "💾 Enregistrer les modifications" : "✅ Créer la facture");
-        saveBtn.setFont(Font.font("System", FontWeight.BOLD, 14));
-        saveBtn.setStyle(
-            "-fx-background-color: #E66239;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        );
-        saveBtn.setOnMouseEntered(e -> saveBtn.setStyle(
-            "-fx-background-color: #d5542e;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        ));
-        saveBtn.setOnMouseExited(e -> saveBtn.setStyle(
-            "-fx-background-color: #E66239;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 12px;" +
-            "-fx-padding: 14 28;" +
-            "-fx-cursor: hand;"
-        ));
-
+        Button saveBtn = new Button(isEdit ? "💾 Enregistrer" : "✅ Créer la facture");
+        saveBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-background-radius: 12px; -fx-padding: 14 28; -fx-cursor: hand;");
         saveBtn.setOnAction(e -> {
-            // Validation
-            if (cmbClient.getValue() == null || cmbClient.getValue().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Validation");
-                alert.setHeaderText(null);
-                alert.setContentText("Veuillez sélectionner un client.");
-                alert.showAndWait();
+            if (txtClient.getText().isEmpty()) {
+                new Alert(Alert.AlertType.WARNING, "Veuillez entrer un client.").showAndWait();
                 return;
             }
-
             String nomf = txtNum.getText();
-            String client = cmbClient.getValue();
+            String client = txtClient.getText();
             LocalDateTime datef = datePicker.getValue().atStartOfDay();
-            int etatf = cmbStatut.getValue().contains("✅") ? 1 : 0;
+            int etatf = cmbStatut.getValue() != null && cmbStatut.getValue().contains("✅") ? 1 : 0;
 
             if (isEdit) {
                 Facture updated = new Facture(factureToEdit.getId(), nomf, datef, etatf,
                         factureToEdit.getNbCommandes(), factureToEdit.getMontantTotal(), client);
                 controller.updateFacture(updated);
             } else {
-                controller.addFacture(new Facture(-1, nomf, datef, etatf, 0, 0.0, client));
+                Facture newFacture = new Facture(-1, nomf, datef, etatf, 0, 0.0, client);
+                controller.addFacture(newFacture);
             }
-
             if (onSave != null) onSave.run();
         });
 
