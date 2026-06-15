@@ -6,16 +6,19 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import com.inapp.utils.NavigationManager;
 import com.inapp.utils.SessionManager;
+import com.inapp.MainApplication;
 
 public class Login extends VBox {
     
     private NavigationManager navigationManager;
+    private MainApplication mainApp;
     private TextField usernameField;
     private PasswordField passwordField;
     private Label errorLabel;
     
-    public Login(NavigationManager navManager) {
+    public Login(NavigationManager navManager, MainApplication app) {
         this.navigationManager = navManager;
+        this.mainApp = app;
         setupUI();
     }
     
@@ -29,8 +32,8 @@ public class Login extends VBox {
         card.setStyle("-fx-background-color: white; -fx-background-radius: 15px;");
         card.setPadding(new Insets(40));
         
-        Label title = new Label("InApp");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2a5298;");
+        Label title = new Label("PowerStock");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #E66239;");
         title.setAlignment(Pos.CENTER);
         
         Label subtitle = new Label("Système de gestion de facturation");
@@ -47,7 +50,7 @@ public class Login extends VBox {
         
         Button loginBtn = new Button("Se connecter");
         loginBtn.setMaxWidth(Double.MAX_VALUE);
-        loginBtn.setStyle("-fx-background-color: linear-gradient(to right, #667eea, #764ba2); -fx-text-fill: white; -fx-padding: 12px; -fx-background-radius: 8px; -fx-font-weight: bold;");
+        loginBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-padding: 12px; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-cursor: hand;");
         loginBtn.setOnAction(e -> handleLogin());
         
         errorLabel = new Label();
@@ -73,10 +76,10 @@ public class Login extends VBox {
         
         if ("admin".equals(username) && "admin".equals(password)) {
             SessionManager.getInstance().setUser(1, username, "super_admin", "admin@inapp.com", "Admin Super");
-            navigationManager.navigateTo("adminDashboard");
+            mainApp.showMainScene();
         } else if ("user".equals(username) && "user".equals(password)) {
             SessionManager.getInstance().setUser(2, username, "admin", "user@inapp.com", "Utilisateur Normal");
-            navigationManager.navigateTo("frontDashboard");
+            mainApp.showMainScene();
         } else {
             errorLabel.setText("Nom d'utilisateur ou mot de passe incorrect");
             errorLabel.setVisible(true);

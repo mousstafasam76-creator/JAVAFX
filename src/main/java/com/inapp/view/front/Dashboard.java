@@ -9,18 +9,13 @@ import javafx.scene.layout.*;
 import javafx.util.Duration;
 import com.inapp.utils.NavigationManager;
 import com.inapp.utils.SessionManager;
-import com.inapp.view.components.Sidebar;
 import com.inapp.view.components.Footer;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class Dashboard extends BorderPane {
 
     private NavigationManager navManager;
-    private Label clockLabel;
-    private Timeline clockTimeline;
 
-    // Données fictives (comme le PHP avec la BD déconnectée)
+    // Données fictives
     private final String totalSales      = "450,000 FCFA";
     private final String totalCommandes  = "1,234";
     private final String totalExpenses   = "85,000 FCFA";
@@ -34,34 +29,22 @@ public class Dashboard extends BorderPane {
     public Dashboard(NavigationManager navManager) {
         this.navManager = navManager;
         setupUI();
-        startClock();
     }
 
     private void setupUI() {
-        setLeft(new Sidebar(navManager));
+        // PAS DE SIDEBAR ICI - Supprimé
         setBottom(new Footer());
 
-        // ========== CONTENU CENTRAL ==========
         VBox content = new VBox(25);
         content.setPadding(new Insets(25));
         content.setStyle("-fx-background-color: #f5f7fa;");
 
-        // 1. Titre + bienvenue
         content.getChildren().add(createTitleSection());
-
-        // 2. Les 4 cartes statistiques colorées
         content.getChildren().add(createStatsCards());
-
-        // 3. Les 3 cartes supplémentaires
         content.getChildren().add(createExtraCards());
-
-        // 4. Graphiques (ventes mensuelles + aperçu clients)
         content.getChildren().add(createChartsRow());
-
-        // 5. Listes (top produits, stock faible, dernières ventes)
         content.getChildren().add(createListsRow());
 
-        // ScrollPane pour toujours commencer en haut
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -70,7 +53,6 @@ public class Dashboard extends BorderPane {
         setCenter(scrollPane);
     }
 
-    // ==================== 1. TITRE ====================
     private VBox createTitleSection() {
         VBox box = new VBox(5);
         Label title = new Label("Dashboard");
@@ -83,13 +65,11 @@ public class Dashboard extends BorderPane {
         return box;
     }
 
-    // ==================== 2. CARTES STATISTIQUES ====================
     private GridPane createStatsCards() {
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(20);
 
-        // Mêmes données et couleurs que le PHP
         String[][] cards = {
             {"📈", "Chiffre d'affaires", totalSales,    "Total des ventes",   "#E66239", "rgba(230,98,57,0.1)"},
             {"🔄", "Total commandes",   totalCommandes, "Commandes passées",   "#10b981", "rgba(16,185,129,0.1)"},
@@ -123,7 +103,6 @@ public class Dashboard extends BorderPane {
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        // Icône dans un carré coloré (comme icon-shape en PHP)
         StackPane iconBox = new StackPane();
         iconBox.setPrefSize(48, 48);
         iconBox.setMinSize(48, 48);
@@ -148,7 +127,6 @@ public class Dashboard extends BorderPane {
         return card;
     }
 
-    // ==================== 3. CARTES SUPPLÉMENTAIRES ====================
     private HBox createExtraCards() {
         HBox row = new HBox(20);
 
@@ -167,7 +145,6 @@ public class Dashboard extends BorderPane {
         card.setPadding(new Insets(20));
         card.setStyle("-fx-background-color: white; -fx-background-radius: 15px;");
 
-        // En-tête avec valeur et icône
         HBox top = new HBox(10);
         top.setAlignment(Pos.CENTER_LEFT);
         VBox left = new VBox(5);
@@ -185,12 +162,10 @@ public class Dashboard extends BorderPane {
 
         top.getChildren().addAll(left, spacer, iconLabel);
 
-        // Séparateur
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #e0e0e0;");
         VBox.setMargin(sep, new Insets(15, 0, 10, 0));
 
-        // Footer
         HBox bottom = new HBox(5);
         Label footerLabel = new Label(footer);
         footerLabel.setStyle("-fx-text-fill: #999; -fx-font-size: 12px;");
@@ -204,11 +179,9 @@ public class Dashboard extends BorderPane {
         return card;
     }
 
-    // ==================== 4. GRAPHIQUES ====================
     private HBox createChartsRow() {
         HBox row = new HBox(20);
 
-        // Ventes mensuelles (BarChart)
         VBox salesBox = new VBox(10);
         salesBox.setPadding(new Insets(20));
         salesBox.setStyle("-fx-background-color: white; -fx-background-radius: 15px;");
@@ -242,7 +215,6 @@ public class Dashboard extends BorderPane {
 
         salesBox.getChildren().addAll(salesHeader, barChart);
 
-        // Aperçu clients (PieChart + stats)
         VBox customerBox = new VBox(10);
         customerBox.setPadding(new Insets(20));
         customerBox.setStyle("-fx-background-color: white; -fx-background-radius: 15px;");
@@ -259,7 +231,6 @@ public class Dashboard extends BorderPane {
         custHeader.getChildren().addAll(custTitle, sp2, globalSelect);
 
         HBox custBody = new HBox(20);
-        // Donut chart
         PieChart pieChart = new PieChart();
         pieChart.getData().addAll(
             new PieChart.Data("Nouveaux", firstTime),
@@ -269,11 +240,9 @@ public class Dashboard extends BorderPane {
         pieChart.setPrefSize(220, 220);
         pieChart.setLegendVisible(false);
 
-        // Stats clients
         VBox custStats = new VBox(15);
         custStats.setAlignment(Pos.CENTER);
 
-        // Nouveaux vs Fidèles
         HBox nbRow = new HBox(20);
         VBox newBox = new VBox(5);
         newBox.setAlignment(Pos.CENTER);
@@ -300,12 +269,10 @@ public class Dashboard extends BorderPane {
         nbRow.getChildren().addAll(newBox, retBox);
         nbRow.setAlignment(Pos.CENTER);
 
-        // Séparateur
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #e0e0e0;");
         VBox.setMargin(sep, new Insets(10, 0, 10, 0));
 
-        // Produits | Clients | Commandes
         HBox bottomRow = new HBox(20);
         bottomRow.setAlignment(Pos.CENTER);
         bottomRow.getChildren().addAll(
@@ -335,7 +302,6 @@ public class Dashboard extends BorderPane {
         return box;
     }
 
-    // ==================== 5. LISTES ====================
     private HBox createListsRow() {
         HBox row = new HBox(20);
 
@@ -352,7 +318,6 @@ public class Dashboard extends BorderPane {
         VBox box = new VBox(0);
         box.setStyle("-fx-background-color: white; -fx-background-radius: 15px;");
 
-        // En-tête
         HBox header = new HBox(10);
         header.setPadding(new Insets(15, 20, 10, 20));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -364,7 +329,6 @@ public class Dashboard extends BorderPane {
         btn.setStyle("-fx-font-size: 11px; -fx-background-color: transparent; -fx-border-color: #ccc; -fx-border-radius: 4px;");
         header.getChildren().addAll(title, sp, btn);
 
-        // Liste
         VBox list = new VBox(0);
         String[][] products = {
             {"Réfrigérateur Samsung", "250,000 FCFA", "12 unités"},
@@ -374,17 +338,14 @@ public class Dashboard extends BorderPane {
             {"Micro-ondes Panasonic","95,000 FCFA",  "7 unités"}
         };
         for (String[] p : products) {
-            list.getChildren().add(createProductItem(p[0], p[1], p[2], true));
-        }
-        if (products.length == 0) {
-            list.getChildren().add(new Label("Aucune donnée") {{ setPadding(new Insets(15)); }});
+            list.getChildren().add(createProductItem(p[0], p[1], p[2]));
         }
 
         box.getChildren().addAll(header, list);
         return box;
     }
 
-    private HBox createProductItem(String name, String price, String qty, boolean isTop) {
+    private HBox createProductItem(String name, String price, String qty) {
         HBox item = new HBox(10);
         item.setPadding(new Insets(12, 20, 12, 20));
         item.setAlignment(Pos.CENTER_LEFT);
@@ -452,9 +413,6 @@ public class Dashboard extends BorderPane {
             item.getChildren().addAll(name, sp2, qtyBox);
             list.getChildren().add(item);
         }
-        if (stocks.length == 0) {
-            list.getChildren().add(new Label("✅ Tous les stocks sont bons") {{ setPadding(new Insets(15)); }});
-        }
 
         box.getChildren().addAll(header, list);
         return box;
@@ -508,19 +466,8 @@ public class Dashboard extends BorderPane {
             item.getChildren().addAll(left, sp2, montant);
             list.getChildren().add(item);
         }
-        if (sales.length == 0) {
-            list.getChildren().add(new Label("Aucune vente récente") {{ setPadding(new Insets(15)); }});
-        }
 
         box.getChildren().addAll(header, list);
         return box;
-    }
-
-    private void startClock() {
-        clockTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            // Horloge optionnelle, on ne l'affiche pas dans cette version
-        }));
-        clockTimeline.setCycleCount(Timeline.INDEFINITE);
-        clockTimeline.play();
     }
 }
