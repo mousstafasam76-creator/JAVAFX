@@ -1,6 +1,7 @@
 package com.inapp.view.front.commande;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -17,6 +18,7 @@ import com.inapp.utils.NavigationManager;
 import com.inapp.utils.AlertUtils;
 import com.inapp.model.Client;
 import com.inapp.model.Produit;
+import com.inapp.service.CommandeService;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +27,7 @@ import java.util.*;
 public class Add extends VBox {
     
     private NavigationManager navigationManager;
+    private CommandeService commandeService;
     private int lastCommandeId;
     private Font fontAwesome;
     
@@ -43,9 +46,10 @@ public class Add extends VBox {
     
     public Add(NavigationManager navManager) {
         this.navigationManager = navManager;
+        this.commandeService = new CommandeService();
         this.produitLines = new ArrayList<>();
         loadFontAwesome();
-        loadMockData();
+        loadData();
         setupUI();
     }
     
@@ -76,23 +80,16 @@ public class Add extends VBox {
         return icon;
     }
     
-    private void loadMockData() {
-        clients = new ArrayList<>();
-        clients.add(new Client(1, "Jean", "Dupont", "77 123 45 67", "jean.dupont@email.com", "Dakar, Sénégal"));
-        clients.add(new Client(2, "Marie", "Martin", "77 234 56 78", "marie.martin@email.com", "Thiès, Sénégal"));
-        clients.add(new Client(3, "Pierre", "Durand", "77 345 67 89", "pierre.durand@email.com", "Mbour, Sénégal"));
-        clients.add(new Client(4, "Sophie", "Bernard", "77 456 78 90", "sophie.bernard@email.com", "Saint-Louis, Sénégal"));
-        clients.add(new Client(5, "Lucas", "Petit", "77 567 89 01", "lucas.petit@email.com", "Touba, Sénégal"));
-        
-        produits = new ArrayList<>();
-        produits.add(new Produit(1, "Réfrigérateur Samsung", 250000, 10));
-        produits.add(new Produit(2, "Lave-linge LG", 180000, 8));
-        produits.add(new Produit(3, "Climatiseur Haier", 150000, 5));
-        produits.add(new Produit(4, "Micro-ondes Panasonic", 95000, 7));
-        produits.add(new Produit(5, "Cuisinière Whirlpool", 120000, 4));
-        produits.add(new Produit(6, "Téléviseur Sony 55\"", 350000, 3));
-        produits.add(new Produit(7, "Aspirateur Dyson", 280000, 2));
-        produits.add(new Produit(8, "Cafetière Delonghi", 45000, 12));
+    private void loadData() {
+        new Thread(() -> {
+            clients = commandeService.getAllClients();
+            produits = commandeService.getAllProduits();
+            Platform.runLater(() -> {
+                clientSelect.getItems().addAll(clients);
+                // Ajouter une ligne par défaut
+                addProduitLine();
+            });
+        }).start();
     }
     
     private void setupUI() {
@@ -174,7 +171,6 @@ public class Add extends VBox {
         labelBox.getChildren().addAll(userIcon, label);
         
         clientSelect = new ComboBox<>();
-        clientSelect.getItems().addAll(clients);
         clientSelect.setPromptText("Sélectionner un client...");
         clientSelect.setStyle("-fx-padding: 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-width: 1px;");
         clientSelect.setCellFactory(lv -> new ListCell<Client>() {
@@ -279,8 +275,6 @@ public class Add extends VBox {
         produitsContainer = new VBox(10);
         produitsContainer.setPadding(new Insets(10, 0, 10, 0));
         
-        addProduitLine();
-        
         Button addProductBtn = new Button("+ Ajouter un produit");
         addProductBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-padding: 10px 20px; -fx-background-radius: 10px; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 13px;");
         addProductBtn.setOnMouseEntered(e -> addProductBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 10px 20px; -fx-background-radius: 10px; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 13px;"));
@@ -292,7 +286,8 @@ public class Add extends VBox {
     }
     
     private void addProduitLine() {
-        ProduitLine line = new ProduitLine(produits, this::calculateTotal);
+        if (produits == null) return;
+        ProduitLine line = new ProduitLine(produits, this::calculateTotal, this::showToast);
         produitLines.add(line);
         produitsContainer.getChildren().add(line);
     }
@@ -381,10 +376,15 @@ public class Add extends VBox {
         }
         
         boolean hasProduct = false;
+        List<Map<String, Integer>> items = new ArrayList<>();
+        
         for (ProduitLine line : produitLines) {
             if (line.isActive() && line.getSelectedProduct() != null && line.getQuantity() > 0) {
                 hasProduct = true;
-                break;
+                Map<String, Integer> item = new HashMap<>();
+                item.put("id", line.getSelectedProduct().getId());
+                item.put("qty", line.getQuantity());
+                items.add(item);
             }
         }
         
@@ -393,73 +393,31 @@ public class Add extends VBox {
             return;
         }
         
-        lastCommandeId = new Random().nextInt(1000) + 100;
-        showSuccessModal();
-    }
-    
-    private void showSuccessModal() {
-        Stage modalStage = new Stage();
-        modalStage.initStyle(StageStyle.TRANSPARENT);
-        modalStage.initModality(Modality.APPLICATION_MODAL);
+        int clientId = clientSelect.getValue().getId();
+        LocalDate date = datePicker.getValue();
+        int userId = 1; // À remplacer par l'ID de l'utilisateur connecté
         
-        VBox modalContent = new VBox(20);
-        modalContent.setAlignment(Pos.CENTER);
-        modalContent.setPadding(new Insets(30));
-        modalContent.setStyle("-fx-background-color: white; -fx-background-radius: 24px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 20, 0, 0, 0);");
-        modalContent.setMaxWidth(400);
+        submitBtn.setDisable(true);
+        submitBtn.setText("⏳ Enregistrement...");
         
-        Text checkIcon = createIcon("\uF058", "#10b981", 60);
-        
-        Label title = new Label("Commande créée !");
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 20px; -fx-text-fill: #2d3748;");
-        
-        Label message = new Label("La commande #" + lastCommandeId + " a été enregistrée avec succès.");
-        message.setStyle("-fx-text-fill: #718096; -fx-font-size: 14px;");
-        message.setWrapText(true);
-        
-        HBox buttonsBox = new HBox(15);
-        buttonsBox.setAlignment(Pos.CENTER);
-        
-        Button voirBtn = new Button("👁️ Voir");
-        voirBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-padding: 10px 20px; -fx-background-radius: 8px; -fx-cursor: hand; -fx-font-weight: bold;");
-        voirBtn.setOnAction(e -> {
-            modalStage.close();
-            Map<String, String> params = new HashMap<>();
-            params.put("id", String.valueOf(lastCommandeId));
-            navigationManager.navigateToWithParams("commandeDetails", params);
-        });
-        
-        Button listeBtn = new Button("📋 Liste des commandes");
-        listeBtn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #4a5568; -fx-padding: 10px 20px; -fx-background-radius: 8px; -fx-cursor: hand; -fx-font-weight: 500;");
-        listeBtn.setOnAction(e -> {
-            modalStage.close();
-            navigationManager.navigateTo("commandesList");
-        });
-        
-        Button nouvelleBtn = new Button("➕ Nouvelle commande");
-        nouvelleBtn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #4a5568; -fx-padding: 10px 20px; -fx-background-radius: 8px; -fx-cursor: hand; -fx-font-weight: 500;");
-        nouvelleBtn.setOnAction(e -> {
-            modalStage.close();
-            refreshForm();
-        });
-        
-        buttonsBox.getChildren().addAll(voirBtn, listeBtn, nouvelleBtn);
-        
-        modalContent.getChildren().addAll(checkIcon, title, message, buttonsBox);
-        
-        Scene modalScene = new Scene(modalContent);
-        modalScene.setFill(Color.TRANSPARENT);
-        modalStage.setScene(modalScene);
-        modalStage.showAndWait();
-    }
-    
-    private void refreshForm() {
-        clientSelect.setValue(null);
-        datePicker.setValue(LocalDate.now());
-        produitsContainer.getChildren().clear();
-        produitLines.clear();
-        addProduitLine();
-        calculateTotal();
+        new Thread(() -> {
+            try {
+                int newId = commandeService.addCommande(clientId, userId, date, items);
+                Platform.runLater(() -> {
+                    AlertUtils.showSuccessMessage("Commande créée avec succès !");
+                    Map<String, String> params = new HashMap<>();
+                    params.put("id", String.valueOf(newId));
+                    navigationManager.navigateToWithParams("commandeDetail", params);
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    AlertUtils.showErrorMessage("Erreur: " + e.getMessage());
+                    submitBtn.setDisable(false);
+                    submitBtn.setText("✓ Valider la commande");
+                });
+                e.printStackTrace();
+            }
+        }).start();
     }
     
     private void showToast(String message) {
@@ -473,10 +431,12 @@ public class Add extends VBox {
         private Label totalLineLabel;
         private Label prixLabel;
         private Runnable onUpdate;
+        private java.util.function.Consumer<String> toastConsumer;
         private boolean active = true;
         
-        public ProduitLine(List<Produit> produits, Runnable onUpdate) {
+        public ProduitLine(List<Produit> produits, Runnable onUpdate, java.util.function.Consumer<String> toastConsumer) {
             this.onUpdate = onUpdate;
+            this.toastConsumer = toastConsumer;
             setupUI(produits);
         }
         
@@ -510,7 +470,7 @@ public class Add extends VBox {
                         setText(null);
                     } else {
                         String stockInfo = item.getQuantite() <= 0 ? " ⚠️ RUPTURE" : (item.getQuantite() < 5 ? " ⚠️ Stock: " + item.getQuantite() : "");
-                        setText(item.getNomp() + " - " + String.format("%,.0f", item.getPrix()) + " FCFA" + stockInfo);
+                        setText(item.getNomp() + " - " + String.format("%,d", (int) item.getPrix()) + " FCFA" + stockInfo);
                         if (item.getQuantite() <= 0) {
                             setStyle("-fx-text-fill: #9ca3af;");
                         } else if (item.getQuantite() < 5) {
@@ -568,12 +528,12 @@ public class Add extends VBox {
                     if (qty > stock && stock > 0) {
                         qty = stock;
                         quantityField.setText(String.valueOf(stock));
-                        showToast("Stock limité à " + stock);
+                        if (toastConsumer != null) toastConsumer.accept("Stock limité à " + stock);
                     }
                     if (stock <= 0 && qty > 0) {
                         qty = 0;
                         quantityField.setText("0");
-                        showToast("Produit en rupture");
+                        if (toastConsumer != null) toastConsumer.accept("Produit en rupture");
                     }
                 } catch (NumberFormatException e) {
                     qty = 0;

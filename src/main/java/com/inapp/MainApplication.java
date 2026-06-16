@@ -29,14 +29,21 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        System.out.println("=== DÉMARRAGE DE L'APPLICATION ===");
         this.primaryStage = primaryStage;
         navigationManager = new NavigationManager(primaryStage);
+        System.out.println("NavigationManager créé");
         
         // Créer la scène de connexion (sans sidebar)
         setupLoginScene();
+        System.out.println("LoginScene configurée");
         
         // Créer la scène principale (avec sidebar)
         setupMainScene();
+        System.out.println("MainScene configurée");
+        
+        // Pour TESTER directement la page commandes, décommentez la ligne suivante et commentez les 2 lignes après
+        // primaryStage.setScene(mainScene);
         
         // Démarrer sur la scène de connexion
         primaryStage.setScene(loginScene);
@@ -44,102 +51,121 @@ public class MainApplication extends Application {
         primaryStage.setMinWidth(1000);
         primaryStage.setMinHeight(600);
         primaryStage.show();
+        System.out.println("Fenêtre affichée");
     }
     
     private void setupLoginScene() {
-        // Page de connexion seule, sans layout
-        Login loginView = new Login(navigationManager, this);
-        loginScene = new Scene(loginView, 1400, 900);
-        
         try {
-            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
-            loginScene.getStylesheets().add(cssPath);
+            Login loginView = new Login(navigationManager, this);
+            loginScene = new Scene(loginView, 1400, 900);
+            System.out.println("LoginView créée");
         } catch (Exception e) {
-            System.out.println("CSS non trouvé: " + e.getMessage());
+            System.out.println("Erreur création login: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     private void setupMainScene() {
-        mainLayout = new BorderPane();
-        mainLayout.setStyle("-fx-background-color: #f8f9fa;");
-        
-        Sidebar sidebar = new Sidebar(navigationManager);
-        mainLayout.setLeft(sidebar);
-        
-        contentArea = new BorderPane();
-        contentArea.setStyle("-fx-background-color: #f8f9fa;");
-        mainLayout.setCenter(contentArea);
-        
-        // Enregistrer les vues qui seront affichées dans contentArea
-        registerViews();
-        
-        // Définir le contentArea dans navigationManager
-        navigationManager.setContentArea(contentArea);
-        
-        mainScene = new Scene(mainLayout, 1400, 900);
-        
         try {
-            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
-            mainScene.getStylesheets().add(cssPath);
+            mainLayout = new BorderPane();
+            mainLayout.setStyle("-fx-background-color: #f8f9fa;");
+            
+            Sidebar sidebar = new Sidebar(navigationManager);
+            mainLayout.setLeft(sidebar);
+            System.out.println("Sidebar ajouté");
+            
+            contentArea = new BorderPane();
+            contentArea.setStyle("-fx-background-color: #f8f9fa;");
+            mainLayout.setCenter(contentArea);
+            System.out.println("ContentArea créé");
+            
+            // Enregistrer les vues
+            registerViews();
+            System.out.println("Vues enregistrées");
+            
+            // Définir le contentArea dans navigationManager
+            navigationManager.setContentArea(contentArea);
+            
+            mainScene = new Scene(mainLayout, 1400, 900);
+            
+            try {
+                String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
+                if (cssPath != null) {
+                    mainScene.getStylesheets().add(cssPath);
+                    System.out.println("CSS chargé pour main");
+                }
+            } catch (Exception e) {
+                System.out.println("CSS non trouvé pour main: " + e.getMessage());
+            }
         } catch (Exception e) {
-            System.out.println("CSS non trouvé: " + e.getMessage());
+            System.out.println("Erreur création mainScene: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     public void showMainScene() {
-        // Afficher le dashboard après connexion
+        System.out.println("=== PASSAGE À LA SCÈNE PRINCIPALE ===");
         navigationManager.navigateTo("dashboard");
         primaryStage.setScene(mainScene);
         primaryStage.setTitle("PowerStock - Gestion Électroménager");
+        primaryStage.show();
     }
     
     private void registerViews() {
-        Dashboard frontDashboard = new Dashboard(navigationManager);
-        
-        CommandeListView commandeListView = new CommandeListView(navigationManager);
-        navigationManager.registerView("commandes", commandeListView);
-        navigationManager.registerView("commandesList", commandeListView);
-        
-        Add addCommandeView = new Add(navigationManager);
-        navigationManager.registerView("commandeAdd", addCommandeView);
-        
-        Detail detailCommandeView = new Detail(navigationManager, 0);
-        navigationManager.registerView("commandeDetails", detailCommandeView);
-        
-        Edit editCommandeView = new Edit(navigationManager, 0);
-        navigationManager.registerView("commandeEdit", editCommandeView);
-        
-        navigationManager.registerView("dashboard", frontDashboard);
-        navigationManager.registerView("frontDashboard", frontDashboard);
-        navigationManager.registerView("factures", frontDashboard);
-        navigationManager.registerView("categories", frontDashboard);
-        navigationManager.registerView("products", frontDashboard);
-        navigationManager.registerView("clients", frontDashboard);
-        navigationManager.registerView("reports", frontDashboard);
-        
-        navigationManager.registerView("adminDashboard", createAdminLayout());
-        navigationManager.registerView("usersList", createAdminLayout());
-        navigationManager.registerView("userAdd", createAdminLayout());
-        navigationManager.registerView("categoryAdd", createAdminLayout());
-        navigationManager.registerView("categoriesPending", createAdminLayout());
-        navigationManager.registerView("productAdd", createAdminLayout());
-        navigationManager.registerView("statistics", createAdminLayout());
-        
-        // Vues d'authentification (enregistrées mais pas utilisées dans mainScene)
-        navigationManager.registerView("signin", new Signin(navigationManager));
-        navigationManager.registerView("signup", new Signup(navigationManager));
-        navigationManager.registerView("logout", new Logout(navigationManager));
+        try {
+            Dashboard frontDashboard = new Dashboard(navigationManager);
+            
+            // Vues commandes
+            CommandeListView commandeListView = new CommandeListView(navigationManager);
+            navigationManager.registerProtectedContent("commandes", commandeListView);
+            navigationManager.registerProtectedContent("commandesList", commandeListView);
+            System.out.println("CommandeListView enregistrée comme contenu protégé");
+            
+            Add addCommandeView = new Add(navigationManager);
+            navigationManager.registerProtectedContent("commandeAdd", addCommandeView);
+            System.out.println("Add commande enregistrée");
+            
+            // Vues principales
+            navigationManager.registerProtectedContent("dashboard", frontDashboard);
+            navigationManager.registerProtectedContent("frontDashboard", frontDashboard);
+            navigationManager.registerProtectedContent("factures", frontDashboard);
+            navigationManager.registerProtectedContent("categories", frontDashboard);
+            navigationManager.registerProtectedContent("products", frontDashboard);
+            navigationManager.registerProtectedContent("clients", frontDashboard);
+            navigationManager.registerProtectedContent("reports", frontDashboard);
+            
+            // Vues admin (layout différent)
+            BorderPane adminLayout = new BorderPane();
+            adminLayout.setLeft(new AdminSidebar(navigationManager));
+            adminLayout.setCenter(new com.inapp.view.admin.Dashboard());
+            adminLayout.setBottom(new Footer());
+            
+            navigationManager.registerView("adminDashboard", adminLayout);
+            navigationManager.registerView("usersList", adminLayout);
+            navigationManager.registerView("userAdd", adminLayout);
+            navigationManager.registerView("categoryAdd", adminLayout);
+            navigationManager.registerView("categoriesPending", adminLayout);
+            navigationManager.registerView("productAdd", adminLayout);
+            navigationManager.registerView("statistics", adminLayout);
+            
+            // Vues d'authentification
+            navigationManager.registerView("signin", new Signin(navigationManager));
+            navigationManager.registerView("signup", new Signup(navigationManager));
+            navigationManager.registerView("logout", new Logout(navigationManager));
+            
+            System.out.println("Toutes les vues enregistrées");
+        } catch (Exception e) {
+            System.out.println("Erreur lors de l'enregistrement des vues: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
-    private BorderPane createAdminLayout() {
-        BorderPane layout = new BorderPane();
-        layout.setLeft(new AdminSidebar(navigationManager));
-        layout.setCenter(new com.inapp.view.admin.Dashboard());
-        layout.setBottom(new Footer());
-        return layout;
+    public Stage getPrimaryStage() {
+        return primaryStage;
     }
 
     public static void main(String[] args) {
+        System.out.println("=== LANCEMENT DE L'APPLICATION ===");
         launch(args);
     }
 }

@@ -1,6 +1,7 @@
 package com.inapp.view.front.commande;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.collections.*;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
@@ -8,13 +9,11 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.util.Duration;
 import com.inapp.utils.NavigationManager;
 import com.inapp.utils.AlertUtils;
 import com.inapp.model.Commande;
-import java.io.InputStream;
+import com.inapp.service.CommandeService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -22,10 +21,10 @@ import java.util.*;
 public class CommandeListView extends VBox {
     
     private NavigationManager navigationManager;
+    private CommandeService commandeService;
     private TableView<Commande> tableView;
     private ObservableList<Commande> commandeList;
     private FilteredList<Commande> filteredList;
-    private Font fontAwesome;
     
     // Statistiques
     private Label totalCountLabel;
@@ -53,38 +52,10 @@ public class CommandeListView extends VBox {
     
     public CommandeListView(NavigationManager navManager) {
         this.navigationManager = navManager;
+        this.commandeService = new CommandeService();
         this.commandeList = FXCollections.observableArrayList();
-        loadFontAwesome();
         setupUI();
         loadData();
-        setupEventHandlers();
-    }
-    
-    private void loadFontAwesome() {
-        try {
-            InputStream fontStream = getClass().getResourceAsStream("/fonts/fa-solid-900.ttf");
-            if (fontStream != null) {
-                fontAwesome = Font.loadFont(fontStream, 16);
-                System.out.println("FontAwesome chargé avec succès");
-            } else {
-                System.err.println("FontAwesome non trouvé, utilisation des polices système");
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur chargement FontAwesome: " + e.getMessage());
-        }
-    }
-    
-    private Text createIcon(String unicode, String color, double size) {
-        Text icon = new Text(unicode);
-        if (fontAwesome != null) {
-            icon.setFont(Font.font(fontAwesome.getFamily(), size));
-        } else {
-            icon.setStyle("-fx-font-size: " + size + "px;");
-        }
-        if (color != null) {
-            icon.setStyle(icon.getStyle() + "-fx-fill: " + color + ";");
-        }
-        return icon;
     }
     
     private void setupUI() {
@@ -122,34 +93,22 @@ public class CommandeListView extends VBox {
         header.setPadding(new Insets(0, 0, 20, 0));
         
         VBox titleBox = new VBox(5);
-        HBox titleIcon = new HBox(10);
-        titleIcon.setAlignment(Pos.CENTER_LEFT);
-        
-        Text cartIcon = createIcon("\uF07A", "#E66239", 24); // fa-shopping-cart
-        Label titleText = new Label("Commandes");
-        titleText.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2d3748;");
-        titleIcon.getChildren().addAll(cartIcon, titleText);
-        
+        Label title = new Label("📋 Commandes");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2d3748;");
         Label subtitle = new Label("Gérez vos commandes et suivez leur statut");
         subtitle.setStyle("-fx-text-fill: #718096; -fx-font-size: 14px;");
-        titleBox.getChildren().addAll(titleIcon, subtitle);
+        titleBox.getChildren().addAll(title, subtitle);
         
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
         HBox actionsBox = new HBox(10);
         
-        Button exportBtn = new Button();
-        Text exportIcon = createIcon("\uF56D", "#4a5568", 14); // fa-download
-        exportBtn.setGraphic(exportIcon);
-        exportBtn.setText(" Exporter");
+        Button exportBtn = new Button("📥 Exporter");
         exportBtn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #4a5568; -fx-padding: 8px 16px; -fx-background-radius: 8px; -fx-cursor: hand; -fx-font-weight: 500;");
         exportBtn.setOnAction(e -> exportToCSV());
         
-        Button addBtn = new Button();
-        Text addIcon = createIcon("\uF067", "white", 14); // fa-plus
-        addBtn.setGraphic(addIcon);
-        addBtn.setText(" Nouvelle commande");
+        Button addBtn = new Button("➕ Nouvelle commande");
         addBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-padding: 8px 20px; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-cursor: hand;");
         addBtn.setOnAction(e -> navigationManager.navigateTo("commandeAdd"));
         
@@ -167,10 +126,10 @@ public class CommandeListView extends VBox {
         deliveredCountLabel = new Label("0");
         cancelledCountLabel = new Label("0");
         
-        VBox card1 = createStatCard("\uF07A", "Total commandes", totalCountLabel, "#667eea", "all"); // fa-shopping-cart
-        VBox card2 = createStatCard("\uF017", "En attente", pendingCountLabel, "#f59e0b", "en_attente"); // fa-clock
-        VBox card3 = createStatCard("\uF0D1", "Livrées", deliveredCountLabel, "#10b981", "livree"); // fa-truck
-        VBox card4 = createStatCard("\uF00D", "Annulées", cancelledCountLabel, "#ef4444", "annulee"); // fa-times
+        VBox card1 = createStatCard("📦", "Total commandes", totalCountLabel, "#667eea", "all");
+        VBox card2 = createStatCard("⏳", "En attente", pendingCountLabel, "#f59e0b", "en_attente");
+        VBox card3 = createStatCard("🚚", "Livrées", deliveredCountLabel, "#10b981", "livree");
+        VBox card4 = createStatCard("❌", "Annulées", cancelledCountLabel, "#ef4444", "annulee");
         
         statsBox.getChildren().addAll(card1, card2, card3, card4);
         for (int i = 0; i < 4; i++) {
@@ -180,7 +139,7 @@ public class CommandeListView extends VBox {
         return statsBox;
     }
     
-    private VBox createStatCard(String iconCode, String title, Label valueLabel, String color, String filterValue) {
+    private VBox createStatCard(String icon, String title, Label valueLabel, String color, String filterValue) {
         VBox card = new VBox(10);
         card.setPadding(new Insets(15));
         card.setStyle("-fx-background-color: white; -fx-background-radius: 12px; -fx-cursor: hand;");
@@ -195,7 +154,8 @@ public class CommandeListView extends VBox {
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         
-        Text icon = createIcon(iconCode, color, 22);
+        Label iconLabel = new Label(icon);
+        iconLabel.setStyle("-fx-font-size: 24px;");
         
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -203,7 +163,7 @@ public class CommandeListView extends VBox {
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #666;");
         
-        header.getChildren().addAll(icon, spacer, titleLabel);
+        header.getChildren().addAll(iconLabel, spacer, titleLabel);
         
         valueLabel.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
         
@@ -240,7 +200,7 @@ public class CommandeListView extends VBox {
         HBox searchBox = new HBox(10);
         searchBox.setAlignment(Pos.CENTER_LEFT);
         searchBox.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 40px; -fx-padding: 4px 16px;");
-        Text searchIcon = createIcon("\uF002", "#718096", 14); // fa-search
+        Label searchIcon = new Label("🔍");
         searchField = new TextField();
         searchField.setPromptText("Client ou N° commande...");
         searchField.setStyle("-fx-background-color: transparent; -fx-padding: 8px;");
@@ -303,6 +263,7 @@ public class CommandeListView extends VBox {
         tableView = new TableView<>();
         tableView.setStyle("-fx-border-color: transparent;");
         
+        // Colonne checkbox
         TableColumn<Commande, Boolean> checkCol = new TableColumn<>("");
         checkCol.setPrefWidth(40);
         checkCol.setCellFactory(col -> new TableCell<Commande, Boolean>() {
@@ -329,6 +290,7 @@ public class CommandeListView extends VBox {
             }
         });
         
+        // N° Commande
         TableColumn<Commande, Integer> idCol = new TableColumn<>("N° Commande");
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         idCol.setPrefWidth(100);
@@ -344,9 +306,10 @@ public class CommandeListView extends VBox {
             }
         });
         
+        // Client
         TableColumn<Commande, String> clientCol = new TableColumn<>("Client");
         clientCol.setCellValueFactory(new PropertyValueFactory<>("clientName"));
-        clientCol.setPrefWidth(180);
+        clientCol.setPrefWidth(200);
         clientCol.setCellFactory(col -> new TableCell<Commande, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -359,10 +322,23 @@ public class CommandeListView extends VBox {
             }
         });
         
-        TableColumn<Commande, String> dateCol = new TableColumn<>("Date");
+        // Date
+        TableColumn<Commande, LocalDate> dateCol = new TableColumn<>("Date");
         dateCol.setCellValueFactory(new PropertyValueFactory<>("dateCommande"));
         dateCol.setPrefWidth(120);
+        dateCol.setCellFactory(col -> {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            return new TableCell<Commande, LocalDate>() {
+                @Override
+                protected void updateItem(LocalDate item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) setText(null);
+                    else setText(item.format(formatter));
+                }
+            };
+        });
         
+        // Produits
         TableColumn<Commande, String> produitsCol = new TableColumn<>("Produits");
         produitsCol.setCellValueFactory(new PropertyValueFactory<>("produits"));
         produitsCol.setPrefWidth(250);
@@ -386,48 +362,32 @@ public class CommandeListView extends VBox {
             }
         });
         
-        TableColumn<Commande, Double> totalCol = new TableColumn<>("Total");
-        totalCol.setCellValueFactory(new PropertyValueFactory<>("montantTotal"));
+        // Total
+        TableColumn<Commande, Integer> totalCol = new TableColumn<>("Total");
+        totalCol.setCellValueFactory(new PropertyValueFactory<>("totalTtc"));
         totalCol.setPrefWidth(120);
-        totalCol.setCellFactory(col -> new TableCell<Commande, Double>() {
+        totalCol.setCellFactory(col -> new TableCell<Commande, Integer>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(Integer item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) setText(null);
                 else {
-                    setText(String.format("%,.0f FCFA", item));
-                    setStyle("-fx-font-weight: bold; -fx-text-fill: #E66239;");
+                    setText(String.format("%,d FCFA", item));
+                    setStyle("-fx-font-weight: bold; -fx-text-fill: #28a745;");
                 }
             }
         });
         
+        // Statut
         TableColumn<Commande, String> statusCol = new TableColumn<>("Statut");
         statusCol.setCellValueFactory(new PropertyValueFactory<>("statut"));
-        statusCol.setPrefWidth(180);
+        statusCol.setPrefWidth(150);
         statusCol.setCellFactory(col -> new TableCell<Commande, String>() {
-            private final ComboBox<String> statusCombo = new ComboBox<>();
-            {
-                statusCombo.getItems().addAll("", "En attente", "Livrée", "Annulée");
-                statusCombo.setPromptText("Changer");
-                statusCombo.setStyle("-fx-font-size: 11px; -fx-padding: 2px; -fx-background-radius: 5px;");
-                statusCombo.setOnAction(e -> {
-                    Commande cmd = getTableView().getItems().get(getIndex());
-                    String newStatus = statusCombo.getValue();
-                    if (newStatus != null && !newStatus.isEmpty()) {
-                        String statusKey = "";
-                        if (newStatus.equals("En attente")) statusKey = "en_attente";
-                        else if (newStatus.equals("Livrée")) statusKey = "livree";
-                        else statusKey = "annulee";
-                        updateCommandeStatus(cmd.getId(), statusKey);
-                        statusCombo.setValue("");
-                    }
-                });
-            }
-            
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
+                    setText(null);
                     setGraphic(null);
                 } else {
                     HBox container = new HBox(10);
@@ -436,14 +396,26 @@ public class CommandeListView extends VBox {
                     Label badge = new Label();
                     if ("en_attente".equals(item)) {
                         badge.setText("⏳ En attente");
-                        badge.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-padding: 4px 12px; -fx-background-radius: 30px; -fx-font-size: 11px;");
+                        badge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #d97706; -fx-padding: 4px 12px; -fx-background-radius: 20px; -fx-font-size: 11px;");
                     } else if ("livree".equals(item)) {
                         badge.setText("✅ Livrée");
-                        badge.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-padding: 4px 12px; -fx-background-radius: 30px; -fx-font-size: 11px;");
+                        badge.setStyle("-fx-background-color: #d1fae5; -fx-text-fill: #059669; -fx-padding: 4px 12px; -fx-background-radius: 20px; -fx-font-size: 11px;");
                     } else {
                         badge.setText("❌ Annulée");
-                        badge.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 4px 12px; -fx-background-radius: 30px; -fx-font-size: 11px;");
+                        badge.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #dc2626; -fx-padding: 4px 12px; -fx-background-radius: 20px; -fx-font-size: 11px;");
                     }
+                    
+                    ComboBox<String> statusCombo = new ComboBox<>();
+                    statusCombo.getItems().addAll("en_attente", "livree", "annulee");
+                    statusCombo.setValue(item);
+                    statusCombo.setStyle("-fx-font-size: 11px; -fx-min-width: 100px;");
+                    statusCombo.setOnAction(e -> {
+                        String newStatus = statusCombo.getValue();
+                        if (newStatus != null && !newStatus.equals(item)) {
+                            Commande cmd = getTableView().getItems().get(getIndex());
+                            updateCommandeStatus(cmd.getId(), newStatus);
+                        }
+                    });
                     
                     container.getChildren().addAll(badge, statusCombo);
                     setGraphic(container);
@@ -451,39 +423,24 @@ public class CommandeListView extends VBox {
             }
         });
         
-        TableColumn<Commande, String> factureCol = new TableColumn<>("Facture");
-        factureCol.setPrefWidth(100);
-        factureCol.setCellFactory(col -> new TableCell<Commande, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    Commande cmd = getTableView().getItems().get(getIndex());
-                    if ("livree".equals(cmd.getStatut())) {
-                        Hyperlink factureLink = new Hyperlink("📄 Facture");
-                        factureLink.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 11px; -fx-underline: true; -fx-cursor: hand;");
-                        factureLink.setOnAction(e -> {
-                            Map<String, String> params = new HashMap<>();
-                            params.put("id", String.valueOf(cmd.getId()));
-                            navigationManager.navigateToWithParams("factureDetails", params);
-                        });
-                        setGraphic(factureLink);
-                    } else {
-                        Label noFacture = new Label("-");
-                        noFacture.setStyle("-fx-text-fill: #999;");
-                        setGraphic(noFacture);
-                    }
-                }
-            }
-        });
-        
-        // ========== ACTIONS AVEC ICÔNES FONTAWESOME ==========
+        // Actions
         TableColumn<Commande, Void> actionsCol = new TableColumn<>("Actions");
-        actionsCol.setPrefWidth(140);
-        actionsCol.setStyle("-fx-alignment: CENTER;");
+        actionsCol.setPrefWidth(130);
         actionsCol.setCellFactory(col -> new TableCell<Commande, Void>() {
+            private final Button viewBtn = new Button("👁️");
+            private final Button editBtn = new Button("✏️");
+            private final Button deleteBtn = new Button("🗑️");
+            private final HBox buttons = new HBox(5, viewBtn, editBtn, deleteBtn);
+            {
+                buttons.setAlignment(Pos.CENTER);
+                viewBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 6px; -fx-cursor: hand;");
+                editBtn.setStyle("-fx-background-color: #ffc107; -fx-text-fill: #333; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 6px; -fx-cursor: hand;");
+                deleteBtn.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 6px; -fx-cursor: hand;");
+                Tooltip.install(viewBtn, new Tooltip("Voir le détail"));
+                Tooltip.install(editBtn, new Tooltip("Modifier"));
+                Tooltip.install(deleteBtn, new Tooltip("Supprimer"));
+            }
+            
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -491,31 +448,13 @@ public class CommandeListView extends VBox {
                     setGraphic(null);
                 } else {
                     Commande cmd = getTableView().getItems().get(getIndex());
-                    HBox buttons = new HBox(8);
-                    buttons.setAlignment(Pos.CENTER);
                     
-                    // Bouton Voir - fa-eye
-                    Button viewBtn = new Button();
-                    Text viewIcon = createIcon("\uF06E", "white", 14);
-                    viewBtn.setGraphic(viewIcon);
-                    viewBtn.setStyle("-fx-background-color: #E66239; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;");
-                    viewBtn.setOnMouseEntered(e -> viewBtn.setStyle("-fx-background-color: #d5542e; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    viewBtn.setOnMouseExited(e -> viewBtn.setStyle("-fx-background-color: #E66239; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    Tooltip.install(viewBtn, new Tooltip("Voir la commande"));
                     viewBtn.setOnAction(e -> {
                         Map<String, String> params = new HashMap<>();
                         params.put("id", String.valueOf(cmd.getId()));
-                        navigationManager.navigateToWithParams("commandeDetails", params);
+                        navigationManager.navigateToWithParams("commandeDetail", params);
                     });
                     
-                    // Bouton Modifier - fa-pen
-                    Button editBtn = new Button();
-                    Text editIcon = createIcon("\uF304", "#333", 14);
-                    editBtn.setGraphic(editIcon);
-                    editBtn.setStyle("-fx-background-color: #ffc107; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;");
-                    editBtn.setOnMouseEntered(e -> editBtn.setStyle("-fx-background-color: #e0a800; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    editBtn.setOnMouseExited(e -> editBtn.setStyle("-fx-background-color: #ffc107; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    Tooltip.install(editBtn, new Tooltip("Modifier la commande"));
                     editBtn.setOnAction(e -> {
                         if ("livree".equals(cmd.getStatut())) {
                             AlertUtils.showWarningMessage("Impossible de modifier une commande livrée");
@@ -526,30 +465,30 @@ public class CommandeListView extends VBox {
                         }
                     });
                     
-                    // Bouton Supprimer - fa-trash
-                    Button deleteBtn = new Button();
-                    Text deleteIcon = createIcon("\uF1F8", "white", 14);
-                    deleteBtn.setGraphic(deleteIcon);
-                    deleteBtn.setStyle("-fx-background-color: #dc3545; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;");
-                    deleteBtn.setOnMouseEntered(e -> deleteBtn.setStyle("-fx-background-color: #c82333; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    deleteBtn.setOnMouseExited(e -> deleteBtn.setStyle("-fx-background-color: #dc3545; -fx-min-width: 34px; -fx-min-height: 34px; -fx-background-radius: 8px; -fx-cursor: hand;"));
-                    Tooltip.install(deleteBtn, new Tooltip("Supprimer la commande"));
                     deleteBtn.setOnAction(e -> {
                         if (AlertUtils.confirmDelete("Supprimer la commande #" + cmd.getId() + " ?")) {
-                            commandeList.remove(cmd);
-                            updateStats();
-                            updateTablePage();
-                            AlertUtils.showSuccessMessage("Commande supprimée");
+                            new Thread(() -> {
+                                try {
+                                    commandeService.deleteCommande(cmd.getId());
+                                    Platform.runLater(() -> {
+                                        commandeList.remove(cmd);
+                                        updateStats();
+                                        updateTablePage();
+                                        AlertUtils.showSuccessMessage("Commande supprimée");
+                                    });
+                                } catch (Exception ex) {
+                                    Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur lors de la suppression"));
+                                }
+                            }).start();
                         }
                     });
                     
-                    buttons.getChildren().addAll(viewBtn, editBtn, deleteBtn);
                     setGraphic(buttons);
                 }
             }
         });
         
-        tableView.getColumns().addAll(checkCol, idCol, clientCol, dateCol, produitsCol, totalCol, statusCol, factureCol, actionsCol);
+        tableView.getColumns().addAll(checkCol, idCol, clientCol, dateCol, produitsCol, totalCol, statusCol, actionsCol);
         tableView.setItems(filteredList);
         
         card.getChildren().addAll(header, tableView);
@@ -558,9 +497,30 @@ public class CommandeListView extends VBox {
         return card;
     }
     
+    private void updateCommandeStatus(int id, String newStatus) {
+        new Thread(() -> {
+            try {
+                commandeService.updateStatut(id, newStatus);
+                Platform.runLater(() -> {
+                    for (Commande cmd : commandeList) {
+                        if (cmd.getId() == id) {
+                            cmd.setStatut(newStatus);
+                            break;
+                        }
+                    }
+                    tableView.refresh();
+                    updateStats();
+                    AlertUtils.showSuccessMessage("Statut mis à jour");
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur lors de la mise à jour"));
+            }
+        }).start();
+    }
+    
     private HBox createPagination() {
         HBox pagination = new HBox(10);
-        pagination.setAlignment(Pos.CENTER_RIGHT);
+        pagination.setAlignment(Pos.CENTER);
         pagination.setPadding(new Insets(20, 0, 0, 0));
         return pagination;
     }
@@ -572,8 +532,8 @@ public class CommandeListView extends VBox {
         bar.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 40px;");
         bar.setVisible(false);
         
-        Text iconText = createIcon("\uF0CB", "white", 14); // fa-list
-        iconText.setStyle(iconText.getStyle() + " -fx-fill: white;");
+        Label iconLabel = new Label("📋");
+        iconLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
         
         selectedCountLabel = new Label("0");
         selectedCountLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
@@ -582,37 +542,58 @@ public class CommandeListView extends VBox {
         textLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
         
         bulkStatusCombo = new ComboBox<>();
-        bulkStatusCombo.getItems().addAll("Changer statut", "En attente", "Livrée", "Annulée");
+        bulkStatusCombo.getItems().addAll("Changer statut", "en_attente", "livree", "annulee");
         bulkStatusCombo.setValue("Changer statut");
         bulkStatusCombo.setStyle("-fx-background-radius: 20px; -fx-font-size: 12px;");
         bulkStatusCombo.setOnAction(e -> {
             String val = bulkStatusCombo.getValue();
             if (!val.equals("Changer statut") && !selectedIds.isEmpty()) {
-                String statusKey = val.equals("En attente") ? "en_attente" : 
-                                  (val.equals("Livrée") ? "livree" : "annulee");
-                for (int id : selectedIds) {
-                    updateCommandeStatus(id, statusKey);
-                }
-                AlertUtils.showSuccessMessage(selectedIds.size() + " commande(s) mise(s) à jour");
-                bulkStatusCombo.setValue("Changer statut");
-                clearSelection();
+                new Thread(() -> {
+                    try {
+                        for (int id : selectedIds) {
+                            commandeService.updateStatut(id, val);
+                        }
+                        Platform.runLater(() -> {
+                            for (Commande cmd : commandeList) {
+                                if (selectedIds.contains(cmd.getId())) {
+                                    cmd.setStatut(val);
+                                }
+                            }
+                            tableView.refresh();
+                            updateStats();
+                            AlertUtils.showSuccessMessage(selectedIds.size() + " commande(s) mise(s) à jour");
+                            bulkStatusCombo.setValue("Changer statut");
+                            clearSelection();
+                        });
+                    } catch (Exception ex) {
+                        Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur lors de la mise à jour"));
+                    }
+                }).start();
             }
         });
         
-        Button deleteBtn = new Button();
-        Text deleteIcon = createIcon("\uF1F8", "white", 13);
-        deleteBtn.setGraphic(deleteIcon);
-        deleteBtn.setText(" Supprimer");
+        Button deleteBtn = new Button("🗑️ Supprimer");
         deleteBtn.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-padding: 6px 16px; -fx-background-radius: 20px; -fx-cursor: hand; -fx-font-size: 12px; -fx-font-weight: bold;");
         deleteBtn.setOnAction(e -> {
             if (AlertUtils.confirmDelete("Supprimer " + selectedIds.size() + " commande(s) ?")) {
-                for (int id : selectedIds) {
-                    commandeList.removeIf(cmd -> cmd.getId() == id);
-                }
-                updateStats();
-                updateTablePage();
-                AlertUtils.showSuccessMessage(selectedIds.size() + " commande(s) supprimée(s)");
-                clearSelection();
+                new Thread(() -> {
+                    try {
+                        for (int id : selectedIds) {
+                            commandeService.deleteCommande(id);
+                        }
+                        Platform.runLater(() -> {
+                            for (int id : selectedIds) {
+                                commandeList.removeIf(cmd -> cmd.getId() == id);
+                            }
+                            updateStats();
+                            updateTablePage();
+                            AlertUtils.showSuccessMessage(selectedIds.size() + " commande(s) supprimée(s)");
+                            clearSelection();
+                        });
+                    } catch (Exception ex) {
+                        Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur lors de la suppression"));
+                    }
+                }).start();
             }
         });
         
@@ -620,19 +601,8 @@ public class CommandeListView extends VBox {
         closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 14px; -fx-font-weight: bold;");
         closeBtn.setOnAction(e -> clearSelection());
         
-        bar.getChildren().addAll(iconText, selectedCountLabel, textLabel, bulkStatusCombo, deleteBtn, closeBtn);
+        bar.getChildren().addAll(iconLabel, selectedCountLabel, textLabel, bulkStatusCombo, deleteBtn, closeBtn);
         return bar;
-    }
-    
-    private void updateCommandeStatus(int id, String newStatus) {
-        for (Commande cmd : commandeList) {
-            if (cmd.getId() == id) {
-                cmd.setStatut(newStatus);
-                break;
-            }
-        }
-        updateStats();
-        tableView.refresh();
     }
     
     private void clearSelection() {
@@ -643,24 +613,65 @@ public class CommandeListView extends VBox {
     }
     
     private void loadData() {
-        commandeList.addAll(
-            new Commande(1, "Jean Dupont", "2025-06-10", "en_attente", 250000, "Réfrigérateur Samsung (2), Lave-linge LG (1)"),
-            new Commande(2, "Marie Martin", "2025-06-09", "livree", 180000, "Climatiseur Haier (1)"),
-            new Commande(3, "Pierre Durand", "2025-06-08", "annulee", 95000, "Micro-ondes Panasonic (1)"),
-            new Commande(4, "Sophie Bernard", "2025-06-07", "en_attente", 320000, "Lave-linge LG (1), Réfrigérateur Samsung (1)"),
-            new Commande(5, "Lucas Petit", "2025-06-06", "livree", 150000, "Cuisinière Whirlpool (1)"),
-            new Commande(6, "Emma Richard", "2025-06-05", "en_attente", 89000, "Micro-ondes Panasonic (1), Grille-pain (1)"),
-            new Commande(7, "Thomas Dubois", "2025-06-04", "annulee", 250000, "Réfrigérateur Samsung (1)"),
-            new Commande(8, "Julie Moreau", "2025-06-03", "livree", 450000, "Lave-linge LG (2), Climatiseur Haier (1)")
-        );
-        
-        tableView.setItems(filteredList);
-        updateStats();
-        updateTablePage();
+        new Thread(() -> {
+            try {
+                List<Commande> commandes = commandeService.getAllCommandes();
+                Map<String, Integer> stats = commandeService.getStats();
+                
+                Platform.runLater(() -> {
+                    commandeList.setAll(commandes);
+                    tableView.setItems(filteredList);
+                    updateStatsFromMap(stats);
+                    updateTablePage();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    AlertUtils.showErrorMessage("Erreur de chargement des données: " + e.getMessage());
+                });
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    
+    /**
+     * Rafraîchit les données de la liste des commandes
+     * Appelé après une modification dans Edit
+     */
+    public void refreshData() {
+        System.out.println("🔄 Rafraîchissement des données de la liste");
+        new Thread(() -> {
+            try {
+                List<Commande> commandes = commandeService.getAllCommandes();
+                Map<String, Integer> stats = commandeService.getStats();
+                
+                Platform.runLater(() -> {
+                    commandeList.setAll(commandes);
+                    tableView.setItems(filteredList);
+                    updateStatsFromMap(stats);
+                    updateTablePage();
+                    System.out.println("✅ Données rafraîchies avec succès");
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    AlertUtils.showErrorMessage("Erreur de rafraîchissement: " + e.getMessage());
+                });
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    
+    private void updateStatsFromMap(Map<String, Integer> stats) {
+        totalCountLabel.setText(String.valueOf(stats.getOrDefault("total", 0)));
+        pendingCountLabel.setText(String.valueOf(stats.getOrDefault("attente", 0)));
+        deliveredCountLabel.setText(String.valueOf(stats.getOrDefault("livree", 0)));
+        cancelledCountLabel.setText(String.valueOf(stats.getOrDefault("annulee", 0)));
     }
     
     private void filterData() {
-        if (searchField == null) return;
+        // Ajout des vérifications null pour éviter l'erreur
+        if (searchField == null || dateFilter == null || filteredList == null) {
+            return;
+        }
         
         String search = searchField.getText().toLowerCase();
         LocalDate date = dateFilter.getValue();
@@ -669,7 +680,7 @@ public class CommandeListView extends VBox {
             if (!"all".equals(currentFilter) && !cmd.getStatut().equals(currentFilter)) return false;
             if (!search.isEmpty() && !cmd.getClientName().toLowerCase().contains(search) && 
                 !String.valueOf(cmd.getId()).contains(search)) return false;
-            if (date != null && !cmd.getDateCommande().equals(date.toString())) return false;
+            if (date != null && cmd.getDateCommande() != null && !cmd.getDateCommande().equals(date)) return false;
             return true;
         });
         
@@ -678,6 +689,8 @@ public class CommandeListView extends VBox {
     }
     
     private void updateStats() {
+        if (filteredList == null) return;
+        
         int total = filteredList.size();
         int pending = (int) filteredList.stream().filter(c -> "en_attente".equals(c.getStatut())).count();
         int delivered = (int) filteredList.stream().filter(c -> "livree".equals(c.getStatut())).count();
@@ -690,7 +703,7 @@ public class CommandeListView extends VBox {
     }
     
     private void updateTablePage() {
-        if (paginationBox == null) return;
+        if (paginationBox == null || filteredList == null) return;
         
         paginationBox.getChildren().clear();
         int totalPages = (int) Math.ceil(filteredList.size() / (double) rowsPerPage);
@@ -703,9 +716,7 @@ public class CommandeListView extends VBox {
         currentPage = Math.max(1, Math.min(currentPage, totalPages));
         
         Button prevBtn = new Button("◀");
-        prevBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-border-width: 1px; -fx-cursor: hand; -fx-font-size: 12px;");
-        prevBtn.setOnMouseEntered(e -> prevBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #E66239; -fx-cursor: hand; -fx-font-size: 12px;"));
-        prevBtn.setOnMouseExited(e -> prevBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-cursor: hand; -fx-font-size: 12px;"));
+        prevBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-border-width: 1px; -fx-cursor: hand;");
         prevBtn.setOnAction(e -> {
             if (currentPage > 1) {
                 currentPage--;
@@ -723,11 +734,9 @@ public class CommandeListView extends VBox {
             int pageNum = i;
             Button pageBtn = new Button(String.valueOf(i));
             if (currentPage == i) {
-                pageBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #E66239; -fx-cursor: hand; -fx-font-weight: bold;");
+                pageBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 36px; -fx-min-height: 36px; -fx-background-radius: 8px; -fx-font-weight: bold;");
             } else {
-                pageBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-border-width: 1px; -fx-cursor: hand; -fx-font-weight: 500;");
-                pageBtn.setOnMouseEntered(e -> pageBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #E66239; -fx-cursor: hand; -fx-font-weight: bold;"));
-                pageBtn.setOnMouseExited(e -> pageBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-cursor: hand; -fx-font-weight: 500;"));
+                pageBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 36px; -fx-min-height: 36px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-width: 1px;");
             }
             pageBtn.setOnAction(e -> {
                 currentPage = pageNum;
@@ -737,9 +746,7 @@ public class CommandeListView extends VBox {
         }
         
         Button nextBtn = new Button("▶");
-        nextBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-border-width: 1px; -fx-cursor: hand; -fx-font-size: 12px;");
-        nextBtn.setOnMouseEntered(e -> nextBtn.setStyle("-fx-background-color: #E66239; -fx-text-fill: white; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #E66239; -fx-cursor: hand; -fx-font-size: 12px;"));
-        nextBtn.setOnMouseExited(e -> nextBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-cursor: hand; -fx-font-size: 12px;"));
+        nextBtn.setStyle("-fx-background-color: white; -fx-text-fill: #4a5568; -fx-min-width: 38px; -fx-min-height: 38px; -fx-background-radius: 12px; -fx-border-color: #e2e8f0; -fx-border-width: 1px; -fx-cursor: hand;");
         nextBtn.setOnAction(e -> {
             if (currentPage < totalPages) {
                 currentPage++;
@@ -765,20 +772,17 @@ public class CommandeListView extends VBox {
         }
     }
     
-    private void setupEventHandlers() {
-        // Les écouteurs sont déjà définis
-    }
-    
     private void exportToCSV() {
         StringBuilder csv = new StringBuilder();
         csv.append("N° Commande;Client;Date;Produits;Montant;Statut\n");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         
         for (Commande cmd : commandeList) {
             csv.append(cmd.getId()).append(";");
             csv.append(cmd.getClientName()).append(";");
-            csv.append(cmd.getDateCommande()).append(";");
+            csv.append(cmd.getDateCommande() != null ? cmd.getDateCommande().format(formatter) : "").append(";");
             csv.append("\"").append(cmd.getProduits() != null ? cmd.getProduits() : "").append("\";");
-            csv.append(cmd.getMontantTotal()).append(";");
+            csv.append(cmd.getTotalTtc()).append(";");
             csv.append(cmd.getStatut()).append("\n");
         }
         

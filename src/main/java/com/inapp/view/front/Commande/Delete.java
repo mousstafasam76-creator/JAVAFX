@@ -4,6 +4,7 @@ import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.TranslateTransition;
 import javafx.animation.FadeTransition;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -20,12 +21,15 @@ import com.inapp.utils.NavigationManager;
 import com.inapp.utils.AlertUtils;
 import com.inapp.model.Commande;
 import com.inapp.model.Produit;
+import com.inapp.service.CommandeService;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.*;
 
 public class Delete extends VBox {
     
     private NavigationManager navigationManager;
+    private CommandeService commandeService;
     private int commandeId;
     private Font fontAwesome;
     private Commande commande;
@@ -33,6 +37,7 @@ public class Delete extends VBox {
     
     public Delete(NavigationManager navManager, int id) {
         this.navigationManager = navManager;
+        this.commandeService = new CommandeService();
         this.commandeId = id;
         this.produits = new ArrayList<>();
         loadFontAwesome();
@@ -68,9 +73,27 @@ public class Delete extends VBox {
     }
     
     private void loadCommandeData() {
-        commande = new Commande(commandeId, "Jean Dupont", "2025-06-10", "en_attente", 430000, "Réfrigérateur Samsung (2), Lave-linge LG (1)");
-        produits.add(new Produit(1, "Réfrigérateur Samsung", 250000, 2));
-        produits.add(new Produit(2, "Lave-linge LG", 180000, 1));
+        // Récupérer les données depuis la BDD
+        commande = commandeService.getCommandeById(commandeId);
+        
+        if (commande != null) {
+            // Récupérer les produits de la commande
+            List<Map<String, Object>> details = commandeService.getCommandeDetails(commandeId);
+            for (Map<String, Object> detail : details) {
+                Produit p = new Produit();
+                p.setId((int) detail.get("produit_id"));
+                p.setNomp((String) detail.get("produit_nom"));
+                p.setQuantite((int) detail.get("quantite"));
+                produits.add(p);
+            }
+        } else {
+            // Données mock en cas d'erreur de BDD
+            commande = new Commande();
+            commande.setId(commandeId);
+            commande.setClientName("Client inconnu");
+            commande.setStatut("en_attente");
+            produits.add(new Produit(1, "Produit exemple", 10000, 1));
+        }
     }
     
     private void deleteCommande() {
@@ -100,7 +123,7 @@ public class Delete extends VBox {
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 20px; -fx-text-fill: #2d3748;");
         
         Label message = new Label("Êtes-vous sûr de vouloir supprimer la commande #" + commandeId + " ?");
-        message.setStyle("-fx-text-fill: #4a5568; -fx-font-size: 14px;");
+        message.setStyle("-fx-text-fill: #4a5568; -fx-font-size: 14px");
         message.setWrapText(true);
         message.setAlignment(Pos.CENTER);
         
@@ -230,12 +253,22 @@ public class Delete extends VBox {
         loadingStage.setScene(loadingScene);
         loadingStage.show();
         
-        PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
-        pause.setOnFinished(e -> {
-            loadingStage.close();
-            showSuccessModal();
-        });
-        pause.play();
+        new Thread(() -> {
+            try {
+                commandeService.deleteCommande(commandeId);
+                Thread.sleep(1000);
+                Platform.runLater(() -> {
+                    loadingStage.close();
+                    showSuccessModal();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    loadingStage.close();
+                    AlertUtils.showErrorMessage("Erreur lors de la suppression: " + e.getMessage());
+                });
+                e.printStackTrace();
+            }
+        }).start();
     }
     
     private void showSuccessModal() {
