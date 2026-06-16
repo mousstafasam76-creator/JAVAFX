@@ -12,6 +12,8 @@ import com.inapp.utils.NavigationManager;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.plaf.synth.Region;
+
 public class Sidebar extends StackPane {
 
     private NavigationManager navigationManager;
@@ -39,6 +41,8 @@ public class Sidebar extends StackPane {
         setCurrentPage("dashboard");
     }
 
+    
+    
     private void setupUI() {
         // Conteneur principal (vertical)
         contentBox = new VBox(0);
@@ -89,7 +93,7 @@ public class Sidebar extends StackPane {
         toggleBtn.setMaxWidth(40);
         toggleBtn.setMinWidth(40);
 
-        Region logoSpacer = new Region();
+        javafx.scene.layout.Region logoSpacer = new javafx.scene.layout.Region();
         HBox.setHgrow(logoSpacer, Priority.ALWAYS);
 
         logoArea.getChildren().addAll(logoFullBox, logoSpacer, toggleBtn);
@@ -110,7 +114,7 @@ public class Sidebar extends StackPane {
         // Catalogue
         navContainer.getChildren().add(createSectionLabel("Catalogue"));
         navContainer.getChildren().add(createNavButton("📁", "Catégories", "categoriesList"));
-        navContainer.getChildren().add(createNavButton("📦", "Produits", "productsList"));
+        navContainer.getChildren().add(createNavButton("📦", "Produits", "products"));
 
         // Clients
         navContainer.getChildren().add(createSectionLabel("Clients"));
@@ -125,7 +129,7 @@ public class Sidebar extends StackPane {
         navContainer.getChildren().add(createNavButton("🚪", "Déconnexion", "login"));
 
         // Pas de ScrollPane : on utilise VBox.setVgrow pour que le fond prenne l'espace restant
-        Region filler = new Region();
+        javafx.scene.layout.Region filler = new javafx.scene.layout.Region();
         VBox.setVgrow(filler, Priority.ALWAYS);
         navContainer.getChildren().add(filler);
 

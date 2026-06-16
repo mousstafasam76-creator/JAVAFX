@@ -4,6 +4,8 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import com.inapp.view.front.Produit.ProductPage;
+
 import com.inapp.utils.NavigationManager;
 import com.inapp.view.auth.Login;
 import com.inapp.view.auth.Signin;
@@ -31,7 +33,7 @@ public class MainApplication extends Application {
     public void start(Stage primaryStage) {
         System.out.println("=== DÉMARRAGE DE L'APPLICATION ===");
         this.primaryStage = primaryStage;
-        navigationManager = new NavigationManager(primaryStage);
+        this.navigationManager = new NavigationManager(primaryStage);
         System.out.println("NavigationManager créé");
         
         // Créer la scène de connexion (sans sidebar)
@@ -41,9 +43,6 @@ public class MainApplication extends Application {
         // Créer la scène principale (avec sidebar)
         setupMainScene();
         System.out.println("MainScene configurée");
-        
-        // Pour TESTER directement la page commandes, décommentez la ligne suivante et commentez les 2 lignes après
-        // primaryStage.setScene(mainScene);
         
         // Démarrer sur la scène de connexion
         primaryStage.setScene(loginScene);
@@ -115,7 +114,7 @@ public class MainApplication extends Application {
         try {
             Dashboard frontDashboard = new Dashboard(navigationManager);
             
-            // Vues commandes
+            // ========== VUES COMMANDES ==========
             CommandeListView commandeListView = new CommandeListView(navigationManager);
             navigationManager.registerProtectedContent("commandes", commandeListView);
             navigationManager.registerProtectedContent("commandesList", commandeListView);
@@ -125,16 +124,21 @@ public class MainApplication extends Application {
             navigationManager.registerProtectedContent("commandeAdd", addCommandeView);
             System.out.println("Add commande enregistrée");
             
-            // Vues principales
+            // ========== VUES PRODUITS ==========
+            ProductPage productPage = new ProductPage(navigationManager);
+            navigationManager.registerProtectedContent("products", productPage);
+            navigationManager.registerProtectedContent("productsList", productPage);
+            System.out.println("ProductPage enregistrée");
+            
+            // ========== VUES PRINCIPALES ==========
             navigationManager.registerProtectedContent("dashboard", frontDashboard);
             navigationManager.registerProtectedContent("frontDashboard", frontDashboard);
             navigationManager.registerProtectedContent("factures", frontDashboard);
             navigationManager.registerProtectedContent("categories", frontDashboard);
-            navigationManager.registerProtectedContent("products", frontDashboard);
             navigationManager.registerProtectedContent("clients", frontDashboard);
             navigationManager.registerProtectedContent("reports", frontDashboard);
             
-            // Vues admin (layout différent)
+            // ========== VUES ADMIN (layout différent) ==========
             BorderPane adminLayout = new BorderPane();
             adminLayout.setLeft(new AdminSidebar(navigationManager));
             adminLayout.setCenter(new com.inapp.view.admin.Dashboard());
@@ -148,7 +152,7 @@ public class MainApplication extends Application {
             navigationManager.registerView("productAdd", adminLayout);
             navigationManager.registerView("statistics", adminLayout);
             
-            // Vues d'authentification
+            // ========== VUES D'AUTHENTIFICATION ==========
             navigationManager.registerView("signin", new Signin(navigationManager));
             navigationManager.registerView("signup", new Signup(navigationManager));
             navigationManager.registerView("logout", new Logout(navigationManager));
