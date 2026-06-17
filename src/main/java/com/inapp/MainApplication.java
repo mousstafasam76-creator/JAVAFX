@@ -22,6 +22,7 @@ import com.inapp.view.front.Client.ClientsListView;
 import com.inapp.view.front.Client.AddClientView;
 import com.inapp.view.front.Client.EditClientView;
 import com.inapp.view.front.Client.ViewClientView;
+import com.inapp.view.front.facture.FactureMainView;
 
 public class MainApplication extends Application {
 
@@ -138,10 +139,14 @@ public class MainApplication extends Application {
             navigationManager.registerProtectedContent("clientAdd", addClientView);
             System.out.println("AddClientView enregistrée");
             
+            // ========== VUES FACTURES ==========
+            FactureMainView factureMainView = new FactureMainView(navigationManager);
+            navigationManager.registerProtectedContent("factures", factureMainView.getView());
+            System.out.println("FactureMainView enregistrée");
+            
             // ========== VUES PRINCIPALES ==========
             navigationManager.registerProtectedContent("dashboard", frontDashboard);
             navigationManager.registerProtectedContent("frontDashboard", frontDashboard);
-            navigationManager.registerProtectedContent("factures", frontDashboard);
             navigationManager.registerProtectedContent("categories", frontDashboard);
             navigationManager.registerProtectedContent("categoriesList", frontDashboard);
             navigationManager.registerProtectedContent("reports", frontDashboard);

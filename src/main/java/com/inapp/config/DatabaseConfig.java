@@ -6,7 +6,6 @@ import java.sql.SQLException;
 
 public class DatabaseConfig {
     
-    // Vérifie que le nom est exactement facturation_java
     private static final String URL = "jdbc:mysql://localhost:3306/facturation_java?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String USER = "root";
     private static final String PASSWORD = "";
