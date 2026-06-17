@@ -1,4 +1,4 @@
- package com.inapp.view.components;
+package com.inapp.view.components;
 
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Insets;
@@ -12,8 +12,6 @@ import com.inapp.utils.NavigationManager;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.plaf.synth.Region;
-
 public class Sidebar extends StackPane {
 
     private NavigationManager navigationManager;
@@ -21,7 +19,7 @@ public class Sidebar extends StackPane {
     private Map<String, Button> menuButtons;
     private boolean isCollapsed = false;
     private double expandedWidth = 260;
-    private double collapsedWidth = 70;  // largeur réduite
+    private double collapsedWidth = 70;
     private HBox logoFullBox;
     private ImageView logoSmall;
     private VBox navContainer;
@@ -41,14 +39,10 @@ public class Sidebar extends StackPane {
         setCurrentPage("dashboard");
     }
 
-    
-    
     private void setupUI() {
-        // Conteneur principal (vertical)
         contentBox = new VBox(0);
         contentBox.setFillWidth(true);
 
-        // ========== LOGO + BOUTON TOGGLE ==========
         logoArea = new HBox(0);
         logoArea.setAlignment(Pos.CENTER_LEFT);
         logoArea.setPadding(new Insets(12, 10, 12, 10));
@@ -56,7 +50,6 @@ public class Sidebar extends StackPane {
         logoArea.setPrefHeight(60);
         logoArea.setMinHeight(60);
 
-        // Logo (image ou texte)
         logoFullBox = new HBox(8);
         logoFullBox.setAlignment(Pos.CENTER_LEFT);
         boolean logoLoaded = false;
@@ -82,7 +75,6 @@ public class Sidebar extends StackPane {
         }
         logoFullBox.setVisible(true);
 
-        // Bouton de réduction
         Button toggleBtn = new Button("☰");
         toggleBtn.setStyle(
             "-fx-background-color: transparent; -fx-text-fill: #6c757d; " +
@@ -93,12 +85,10 @@ public class Sidebar extends StackPane {
         toggleBtn.setMaxWidth(40);
         toggleBtn.setMinWidth(40);
 
-        javafx.scene.layout.Region logoSpacer = new javafx.scene.layout.Region();
+        Region logoSpacer = new Region();
         HBox.setHgrow(logoSpacer, Priority.ALWAYS);
-
         logoArea.getChildren().addAll(logoFullBox, logoSpacer, toggleBtn);
 
-        // ========== CONTENEUR DES MENUS (sans ScrollPane) ==========
         navContainer = new VBox(3);
         navContainer.setPadding(new Insets(5, 0, 20, 0));
 
@@ -108,17 +98,17 @@ public class Sidebar extends StackPane {
 
         // Ventes
         navContainer.getChildren().add(createSectionLabel("Ventes"));
-        navContainer.getChildren().add(createNavButton("🚚", "Commandes", "commandes"));
+        navContainer.getChildren().add(createNavButton("🚚", "Commandes", "commandesList"));
         navContainer.getChildren().add(createNavButton("📄", "Factures", "factures"));
 
         // Catalogue
         navContainer.getChildren().add(createSectionLabel("Catalogue"));
         navContainer.getChildren().add(createNavButton("📁", "Catégories", "categoriesList"));
-        navContainer.getChildren().add(createNavButton("📦", "Produits", "products"));
+        navContainer.getChildren().add(createNavButton("📦", "Produits", "productsList"));
 
         // Clients
         navContainer.getChildren().add(createSectionLabel("Clients"));
-        navContainer.getChildren().add(createNavButton("👥", "Clients", "clients"));
+        navContainer.getChildren().add(createNavButton("👥", "Clients", "clientsList"));
 
         // Rapports
         navContainer.getChildren().add(createSectionLabel("Rapports"));
@@ -128,8 +118,7 @@ public class Sidebar extends StackPane {
         navContainer.getChildren().add(createSectionLabel("Compte"));
         navContainer.getChildren().add(createNavButton("🚪", "Déconnexion", "login"));
 
-        // Pas de ScrollPane : on utilise VBox.setVgrow pour que le fond prenne l'espace restant
-        javafx.scene.layout.Region filler = new javafx.scene.layout.Region();
+        Region filler = new Region();
         VBox.setVgrow(filler, Priority.ALWAYS);
         navContainer.getChildren().add(filler);
 
@@ -150,9 +139,8 @@ public class Sidebar extends StackPane {
         btn.setMaxWidth(Double.MAX_VALUE);
         btn.setAlignment(Pos.CENTER_LEFT);
         btn.setPadding(new Insets(10, 15, 10, 20));
-        // Fond légèrement grisé pour éviter l'effet "blanc sur blanc"
         btn.setStyle(
-            "-fx-background-color: #f8f9fa; " +   // gris très clair
+            "-fx-background-color: #f8f9fa; " +
             "-fx-text-fill: #495057; " +
             "-fx-background-radius: 0; " +
             "-fx-border-color: transparent; " +
@@ -249,7 +237,6 @@ public class Sidebar extends StackPane {
             setPrefWidth(collapsedWidth);
             setMinWidth(collapsedWidth);
             setMaxWidth(collapsedWidth);
-            // Cache le texte des boutons et le logo complet
             for (Button btn : menuButtons.values()) {
                 HBox content = (HBox) btn.getGraphic();
                 if (content.getChildren().size() > 1) {
@@ -261,7 +248,6 @@ public class Sidebar extends StackPane {
                 ((HBox) btn.getGraphic()).setSpacing(0);
             }
             if (logoFullBox != null) logoFullBox.setVisible(false);
-            // On pourrait afficher un petit logo réduit, mais pour l'instant on laisse vide
         } else {
             setPrefWidth(expandedWidth);
             setMinWidth(expandedWidth);

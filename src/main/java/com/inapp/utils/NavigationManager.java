@@ -67,9 +67,6 @@ public class NavigationManager {
         return views.get(name);
     }
     
-    /**
-     * Récupère une vue enregistrée par son nom
-     */
     public Parent getViewInstance(String name) {
         return views.get(name);
     }
@@ -152,7 +149,6 @@ public class NavigationManager {
         String key = baseName + "_" + params.get("id");
         System.out.println("🔍 Navigation avec paramètres vers: " + key);
         
-        // Vérifier si on doit forcer le rafraîchissement
         boolean forceRefresh = params.containsKey("refresh") && "true".equals(params.get("refresh"));
         
         if (!views.containsKey(key) || forceRefresh) {

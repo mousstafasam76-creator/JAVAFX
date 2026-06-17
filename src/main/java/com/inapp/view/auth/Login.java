@@ -16,6 +16,11 @@ public class Login extends VBox {
     private PasswordField passwordField;
     private Label errorLabel;
     
+    public Login(NavigationManager navManager) {
+        this.navigationManager = navManager;
+        setupUI();
+    }
+
     public Login(NavigationManager navManager, MainApplication app) {
         this.navigationManager = navManager;
         this.mainApp = app;
@@ -76,10 +81,18 @@ public class Login extends VBox {
         
         if ("admin".equals(username) && "admin".equals(password)) {
             SessionManager.getInstance().setUser(1, username, "super_admin", "admin@inapp.com", "Admin Super");
-            mainApp.showMainScene();
+            if (mainApp != null) {
+                mainApp.showMainScene();
+            } else {
+                navigationManager.navigateTo("adminDashboard");
+            }
         } else if ("user".equals(username) && "user".equals(password)) {
             SessionManager.getInstance().setUser(2, username, "admin", "user@inapp.com", "Utilisateur Normal");
-            mainApp.showMainScene();
+            if (mainApp != null) {
+                mainApp.showMainScene();
+            } else {
+                navigationManager.navigateTo("dashboard");
+            }
         } else {
             errorLabel.setText("Nom d'utilisateur ou mot de passe incorrect");
             errorLabel.setVisible(true);

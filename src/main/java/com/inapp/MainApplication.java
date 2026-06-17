@@ -5,7 +5,6 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import com.inapp.view.front.Produit.ProductPage;
-
 import com.inapp.utils.NavigationManager;
 import com.inapp.view.auth.Login;
 import com.inapp.view.auth.Signin;
@@ -19,6 +18,8 @@ import com.inapp.view.front.commande.CommandeListView;
 import com.inapp.view.front.commande.Add;
 import com.inapp.view.front.commande.Detail;
 import com.inapp.view.front.commande.Edit;
+import com.inapp.view.front.client.ClientsListView;
+import com.inapp.view.front.client.AddClientView;
 
 public class MainApplication extends Application {
 
@@ -118,7 +119,7 @@ public class MainApplication extends Application {
             CommandeListView commandeListView = new CommandeListView(navigationManager);
             navigationManager.registerProtectedContent("commandes", commandeListView);
             navigationManager.registerProtectedContent("commandesList", commandeListView);
-            System.out.println("CommandeListView enregistrée comme contenu protégé");
+            System.out.println("CommandeListView enregistrée");
             
             Add addCommandeView = new Add(navigationManager);
             navigationManager.registerProtectedContent("commandeAdd", addCommandeView);
@@ -130,12 +131,22 @@ public class MainApplication extends Application {
             navigationManager.registerProtectedContent("productsList", productPage);
             System.out.println("ProductPage enregistrée");
             
+            // ========== VUES CLIENTS ==========
+            ClientsListView clientsListView = new ClientsListView(navigationManager);
+            navigationManager.registerProtectedContent("clientsList", clientsListView);
+            navigationManager.registerProtectedContent("clients", clientsListView);
+            System.out.println("ClientsListView enregistrée");
+            
+            AddClientView addClientView = new AddClientView(navigationManager);
+            navigationManager.registerProtectedContent("addClient", addClientView);
+            System.out.println("AddClientView enregistrée");
+            
             // ========== VUES PRINCIPALES ==========
             navigationManager.registerProtectedContent("dashboard", frontDashboard);
             navigationManager.registerProtectedContent("frontDashboard", frontDashboard);
             navigationManager.registerProtectedContent("factures", frontDashboard);
             navigationManager.registerProtectedContent("categories", frontDashboard);
-            navigationManager.registerProtectedContent("clients", frontDashboard);
+            navigationManager.registerProtectedContent("categoriesList", frontDashboard);
             navigationManager.registerProtectedContent("reports", frontDashboard);
             
             // ========== VUES ADMIN (layout différent) ==========
