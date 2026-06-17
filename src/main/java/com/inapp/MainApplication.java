@@ -2,6 +2,8 @@ package com.inapp;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
+import com.inapp.view.front.Produit.ProductPage;
+
 import com.inapp.utils.NavigationManager;
 import com.inapp.view.auth.Login;
 import com.inapp.view.auth.Signin;
@@ -57,11 +59,23 @@ public class MainApplication extends Application {
         navigationManager.registerView("frontDashboard", frontDashboard);
 
         // Tous les menus de la sidebar blanche pointent vers le même frontDashboard
+
+        /*Product pageProduit = new Product();
+        navigationManager.registerView("productsList", pageProduit);*/
+
+        ProductPage productPage = new ProductPage(navigationManager);
+        navigationManager.registerView("products", productPage);
+
+
         navigationManager.registerView("dashboard", frontDashboard);
         navigationManager.registerView("commandes", frontDashboard);
         navigationManager.registerView("factures", frontDashboard);
         navigationManager.registerView("categories", frontDashboard);
+<<<<<<< HEAD
         navigationManager.registerView("products", frontDashboard);
+=======
+        navigationManager.registerView("clients", frontDashboard);
+>>>>>>> b94bf67c9cd214d3a644e0cb365068384555b880
         navigationManager.registerView("reports", frontDashboard);
 
         // Module Clients (notre partie)
