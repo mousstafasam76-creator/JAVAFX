@@ -1,46 +1,49 @@
-package com.inapp.view.front.client;
+package com.inapp.view.front.Client;
 
 import com.inapp.controller.front.ClientController;
 import com.inapp.model.Client;
 import com.inapp.utils.AlertUtils;
 import com.inapp.utils.NavigationManager;
-import com.inapp.view.front.FrontView;
+import com.inapp.view.components.Footer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-public class EditClientView extends FrontView {
+public class EditClientView extends BorderPane {
 
     private static final String PRIMARY = "#E66239";
     private static final String BORDER  = "#e2e8f0";
+
+    private final NavigationManager navManager;
     private final int clientId;
 
     public EditClientView(NavigationManager navManager, int clientId) {
-        super(navManager);
+        this.navManager = navManager;
         this.clientId = clientId;
+        setupUI();
     }
 
-    @Override
-    protected Node createContent() {
+    private void setupUI() {
+        // SUPPRIMER le Sidebar ici (déjà dans MainApplication)
+        setBottom(new Footer());
+
         Client client = ClientController.getInstance().findById(clientId);
 
         VBox root = new VBox(24);
         root.setPadding(new Insets(30));
         root.setStyle("-fx-background-color: #f5f7fa;");
 
-        // En-tête
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
 
         Button backBtn = new Button("← Retour");
         backBtn.setStyle("-fx-background-color: white; -fx-border-color: " + BORDER + "; -fx-border-radius: 10;" +
             "-fx-background-radius: 10; -fx-padding: 8 18; -fx-font-size: 13px; -fx-cursor: hand;");
-        backBtn.setOnAction(e -> navigationManager.navigateTo("clientsList"));
+        backBtn.setOnAction(e -> navManager.navigateTo("clients"));
 
         VBox titleBox = new VBox(3);
-        Label title = new Label("✏ Modifier client");
+        Label title = new Label("✏️ Modifier client");
         title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         Label sub = new Label(client != null ? client.getNomComplet() : "Client introuvable");
         sub.setStyle("-fx-font-size: 13px; -fx-text-fill: #64748b;");
@@ -51,10 +54,10 @@ public class EditClientView extends FrontView {
             Label err = new Label("Client introuvable.");
             err.setStyle("-fx-text-fill: red; -fx-font-size: 16px;");
             root.getChildren().addAll(header, err);
-            return root;
+            setCenter(root);
+            return;
         }
 
-        // Formulaire pré-rempli
         VBox formCard = new VBox(20);
         formCard.setPadding(new Insets(28));
         formCard.setMaxWidth(720);
@@ -79,8 +82,9 @@ public class EditClientView extends FrontView {
         grid.add(buildFieldBox("Nom", nomField, false), 1, 0);
         grid.add(buildFieldBox("Téléphone", telField, false), 0, 1);
         grid.add(buildFieldBox("Email", emailField, false), 1, 1);
-        GridPane.setColumnSpan(buildFieldBox("Adresse", adresseField, false), 2);
-        grid.add(buildFieldBox("Adresse", adresseField, false), 0, 2);
+        VBox adresseBox = buildFieldBox("Adresse", adresseField, false);
+        GridPane.setColumnSpan(adresseBox, 2);
+        grid.add(adresseBox, 0, 2);
         ColumnConstraints c1 = new ColumnConstraints(); c1.setPercentWidth(50); c1.setHgrow(Priority.ALWAYS);
         ColumnConstraints c2 = new ColumnConstraints(); c2.setPercentWidth(50); c2.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(c1, c2);
@@ -91,7 +95,7 @@ public class EditClientView extends FrontView {
         Button cancelBtn = new Button("Annuler");
         cancelBtn.setStyle("-fx-background-color: white; -fx-border-color: " + BORDER + "; -fx-border-radius: 12;" +
             "-fx-background-radius: 12; -fx-padding: 10 24; -fx-font-size: 13px; -fx-cursor: hand;");
-        cancelBtn.setOnAction(e -> navigationManager.navigateTo("clientsList"));
+        cancelBtn.setOnAction(e -> navManager.navigateTo("clients"));
 
         Button saveBtn = new Button("💾 Enregistrer");
         saveBtn.setStyle("-fx-background-color: " + PRIMARY + "; -fx-text-fill: white; -fx-font-weight: bold;" +
@@ -110,16 +114,17 @@ public class EditClientView extends FrontView {
             client.setAdresse(adresseField.getText().trim());
             ClientController.getInstance().updateClient(client);
             AlertUtils.showSuccessMessage("Client modifié avec succès !");
-            navigationManager.navigateTo("clientsList");
+            navManager.navigateTo("clients");
         });
         actions.getChildren().addAll(cancelBtn, saveBtn);
         formCard.getChildren().addAll(grid, actions);
         root.getChildren().addAll(header, formCard);
-        return root;
+
+        setCenter(root);
     }
 
     private TextField createField(String value) {
-        TextField tf = new TextField(value);
+        TextField tf = new TextField(value != null ? value : "");
         tf.setStyle("-fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: " + BORDER + "; -fx-font-size: 13px; -fx-padding: 10 14;");
         return tf;
     }

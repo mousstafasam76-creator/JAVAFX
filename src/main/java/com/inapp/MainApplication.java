@@ -18,8 +18,10 @@ import com.inapp.view.front.commande.CommandeListView;
 import com.inapp.view.front.commande.Add;
 import com.inapp.view.front.commande.Detail;
 import com.inapp.view.front.commande.Edit;
-import com.inapp.view.front.client.ClientsListView;
-import com.inapp.view.front.client.AddClientView;
+import com.inapp.view.front.Client.ClientsListView;
+import com.inapp.view.front.Client.AddClientView;
+import com.inapp.view.front.Client.EditClientView;
+import com.inapp.view.front.Client.ViewClientView;
 
 public class MainApplication extends Application {
 
@@ -37,15 +39,12 @@ public class MainApplication extends Application {
         this.navigationManager = new NavigationManager(primaryStage);
         System.out.println("NavigationManager créé");
         
-        // Créer la scène de connexion (sans sidebar)
         setupLoginScene();
         System.out.println("LoginScene configurée");
         
-        // Créer la scène principale (avec sidebar)
         setupMainScene();
         System.out.println("MainScene configurée");
         
-        // Démarrer sur la scène de connexion
         primaryStage.setScene(loginScene);
         primaryStage.setTitle("PowerStock - Connexion");
         primaryStage.setMinWidth(1000);
@@ -79,11 +78,9 @@ public class MainApplication extends Application {
             mainLayout.setCenter(contentArea);
             System.out.println("ContentArea créé");
             
-            // Enregistrer les vues
             registerViews();
             System.out.println("Vues enregistrées");
             
-            // Définir le contentArea dans navigationManager
             navigationManager.setContentArea(contentArea);
             
             mainScene = new Scene(mainLayout, 1400, 900);
@@ -133,12 +130,12 @@ public class MainApplication extends Application {
             
             // ========== VUES CLIENTS ==========
             ClientsListView clientsListView = new ClientsListView(navigationManager);
-            navigationManager.registerProtectedContent("clientsList", clientsListView);
             navigationManager.registerProtectedContent("clients", clientsListView);
+            navigationManager.registerProtectedContent("clientsList", clientsListView);
             System.out.println("ClientsListView enregistrée");
             
             AddClientView addClientView = new AddClientView(navigationManager);
-            navigationManager.registerProtectedContent("addClient", addClientView);
+            navigationManager.registerProtectedContent("clientAdd", addClientView);
             System.out.println("AddClientView enregistrée");
             
             // ========== VUES PRINCIPALES ==========

@@ -4,12 +4,19 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import com.inapp.model.Product;
 
 public class EditProductDialog extends Dialog<Product> {
 
+    private TextField nameField;
+    private TextField descField;
+    private TextField priceField;
+    private TextField stockField;
+    private ComboBox<String> categoryCombo;
+
     public EditProductDialog(Product product, Runnable onUpdate) {
         setTitle("Modifier le produit");
-        setHeaderText("Modifier: " + product.getName());
+        setHeaderText("Modifier les informations du produit");
 
         ButtonType saveButtonType = new ButtonType("Enregistrer", ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
@@ -19,13 +26,17 @@ public class EditProductDialog extends Dialog<Product> {
         grid.setVgap(12);
         grid.setPadding(new Insets(20));
 
-        TextField nameField = new TextField(product.getName());
-        TextField descField = new TextField(product.getDescription());
-        TextField priceField = new TextField(String.valueOf((int) product.getPrice()));
-        TextField stockField = new TextField(String.valueOf(product.getStock()));
-        ComboBox<String> categoryCombo = new ComboBox<>();
+        nameField = new TextField(product.getName());
+        nameField.setPromptText("Nom du produit");
+        descField = new TextField(product.getDescription());
+        descField.setPromptText("Description");
+        priceField = new TextField(String.valueOf(product.getPrice()));
+        priceField.setPromptText("Prix (FCFA)");
+        stockField = new TextField(String.valueOf(product.getQuantity()));
+        stockField.setPromptText("Quantité");
+        categoryCombo = new ComboBox<>();
         categoryCombo.getItems().addAll("Électroménager", "Climatisation", "Cuisine", "Électronique");
-        categoryCombo.setValue(product.getCategory());
+        categoryCombo.setValue(product.getCategoryName());
 
         grid.add(new Label("Nom:"), 0, 0);
         grid.add(nameField, 1, 0);
@@ -48,19 +59,42 @@ public class EditProductDialog extends Dialog<Product> {
         setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
                 try {
-                    product.setName(nameField.getText());
-                    product.setDescription(descField.getText());
-                    product.setPrice(Double.parseDouble(priceField.getText()));
-                    product.setStock(Integer.parseInt(stockField.getText()));
-                    product.setCategory(categoryCombo.getValue());
-                    onUpdate.run();
-                    return product;
+                    if (validateFields()) {
+                        product.setName(nameField.getText().trim());
+                        product.setDescription(descField.getText().trim());
+                        product.setPrice(Double.parseDouble(priceField.getText().trim()));
+                        product.setQuantity(Integer.parseInt(stockField.getText().trim()));
+                        product.setCategoryName(categoryCombo.getValue());
+                        onUpdate.run();
+                        return product;
+                    }
                 } catch (NumberFormatException e) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Valeurs numériques invalides.");
-                    alert.showAndWait();
+                    showError("Veuillez entrer des valeurs numériques valides pour le prix et la quantité.");
                 }
             }
             return null;
         });
+    }
+
+    private boolean validateFields() {
+        if (nameField.getText().trim().isEmpty()) {
+            showError("Veuillez saisir un nom de produit");
+            return false;
+        }
+        if (priceField.getText().trim().isEmpty()) {
+            showError("Veuillez saisir un prix");
+            return false;
+        }
+        if (stockField.getText().trim().isEmpty()) {
+            showError("Veuillez saisir une quantité");
+            return false;
+        }
+        return true;
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, message);
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 }

@@ -38,6 +38,7 @@ public class Client {
         setTotalAchats(totalAchats);
     }
 
+    // ========== GETTERS ET SETTERS ==========
     public int getId() { return id.get(); }
     public void setId(int v) { id.set(v); }
     public IntegerProperty idProperty() { return id; }
@@ -45,6 +46,10 @@ public class Client {
     public String getNom() { return nom.get(); }
     public void setNom(String v) { nom.set(v); }
     public StringProperty nomProperty() { return nom; }
+
+    // Alias pour getNom (utilisé par les vues Client)
+    public String getNomc() { return nom.get(); }
+    public void setNomc(String v) { nom.set(v); }
 
     public String getPrenom() { return prenom.get(); }
     public void setPrenom(String v) { prenom.set(v); }
@@ -54,7 +59,9 @@ public class Client {
     public void setTelephone(String v) { telephone.set(v); }
     public StringProperty telephoneProperty() { return telephone; }
 
+    // Alias pour getTelephone (utilisé par les vues Client)
     public String getTel() { return telephone.get(); }
+    public void setTel(String v) { telephone.set(v); }
 
     public String getEmail() { return email.get(); }
     public void setEmail(String v) { email.set(v); }

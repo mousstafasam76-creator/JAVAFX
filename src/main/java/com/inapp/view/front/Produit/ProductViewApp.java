@@ -8,11 +8,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
+import com.inapp.model.Product;
 import java.util.Comparator;
 
 public class ProductViewApp {
@@ -27,7 +29,8 @@ public class ProductViewApp {
     private Label totalQuantityLabel;
     private Label totalValueLabel;
     private Label lowStockLabel;
-    private javafx.scene.control.TableView<Product> tableView;
+    private TableView<Product> tableView;
+    private Runnable onUpdate;
 
     public ProductViewApp() {
         rootView = createView();
@@ -38,7 +41,9 @@ public class ProductViewApp {
         return rootView;
     }
 
-    public void initializeAsComponent() {}
+    public void setOnUpdate(Runnable onUpdate) {
+        this.onUpdate = onUpdate;
+    }
 
     private void loadSampleData() {
         products.addAll(
@@ -84,7 +89,7 @@ public class ProductViewApp {
         subtitle.setFont(Font.font(12));
         titleBox.getChildren().addAll(title, subtitle);
 
-        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         searchField = new TextField();
@@ -162,7 +167,7 @@ public class ProductViewApp {
         valueLabel.setTextFill(Color.web("#1a1a2e"));
         textBox.getChildren().addAll(titleLabel, valueLabel);
 
-        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Label iconLabel = new Label(icon);
@@ -176,15 +181,6 @@ public class ProductViewApp {
 
         topRow.getChildren().addAll(textBox, spacer, iconBox);
         card.getChildren().add(topRow);
-
-        card.setOnMouseEntered(e -> card.setStyle(
-            "-fx-background-color: white; -fx-border-color: #e9ecef; -fx-border-width: 1px;" +
-            "-fx-border-radius: 10px; -fx-background-radius: 10px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 4);"
-        ));
-        card.setOnMouseExited(e -> card.setStyle(
-            "-fx-background-color: white; -fx-border-color: #e9ecef; -fx-border-width: 1px;" +
-            "-fx-border-radius: 10px; -fx-background-radius: 10px;"
-        ));
 
         return card;
     }
@@ -222,7 +218,6 @@ public class ProductViewApp {
         return filters;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTable() {
         VBox tableContainer = new VBox(0);
         tableContainer.setPadding(new Insets(0, 24, 16, 24));
@@ -236,27 +231,28 @@ public class ProductViewApp {
 
         Label tableTitle = new Label("📦 Liste des produits");
         tableTitle.setFont(Font.font("System", FontWeight.BOLD, 14));
-        Label countLabel = new Label("(8 produit(s) au total)");
+        Label countLabel = new Label("(" + products.size() + " produit(s) au total)");
         countLabel.setTextFill(Color.web("#666"));
         countLabel.setFont(Font.font(11));
         countLabel.setPadding(new Insets(0, 0, 0, 10));
 
         tableHeader.getChildren().addAll(tableTitle, countLabel);
 
-        tableView = new javafx.scene.control.TableView<>(filteredProducts);
-        tableView.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView = new TableView<>(filteredProducts);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setStyle("-fx-background-color: white; -fx-border-color: transparent;");
 
+        // Colonnes
         TableColumn<Product, String> nameCol = new TableColumn<>("Nom du produit");
-        nameCol.setCellValueFactory(data -> data.getValue().nameProperty());
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         nameCol.setPrefWidth(180);
 
         TableColumn<Product, String> descCol = new TableColumn<>("Description");
-        descCol.setCellValueFactory(data -> data.getValue().descriptionProperty());
+        descCol.setCellValueFactory(new PropertyValueFactory<>("description"));
         descCol.setPrefWidth(200);
 
         TableColumn<Product, Number> priceCol = new TableColumn<>("Prix (FCFA)");
-        priceCol.setCellValueFactory(data -> data.getValue().priceProperty());
+        priceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
         priceCol.setPrefWidth(120);
         priceCol.setCellFactory(col -> new TableCell<Product, Number>() {
             @Override
@@ -273,19 +269,39 @@ public class ProductViewApp {
         });
 
         TableColumn<Product, Number> stockCol = new TableColumn<>("Quantité");
-        stockCol.setCellValueFactory(data -> data.getValue().stockProperty());
+        stockCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         stockCol.setPrefWidth(100);
+        stockCol.setCellFactory(col -> new TableCell<Product, Number>() {
+            @Override
+            protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    int value = item.intValue();
+                    String text = String.valueOf(value);
+                    if (value == 0) {
+                        setTextFill(Color.RED);
+                    } else if (value < 5) {
+                        setTextFill(Color.ORANGE);
+                    } else {
+                        setTextFill(Color.GREEN);
+                    }
+                    setText(text);
+                }
+            }
+        });
 
         TableColumn<Product, String> catCol = new TableColumn<>("Catégorie");
-        catCol.setCellValueFactory(data -> data.getValue().categoryProperty());
+        catCol.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
         catCol.setPrefWidth(130);
 
         TableColumn<Product, String> creatorCol = new TableColumn<>("Créé par");
-        creatorCol.setCellValueFactory(data -> data.getValue().creatorProperty());
+        creatorCol.setCellValueFactory(new PropertyValueFactory<>("creator"));
         creatorCol.setPrefWidth(110);
 
         TableColumn<Product, String> dateCol = new TableColumn<>("Date");
-        dateCol.setCellValueFactory(data -> data.getValue().dateProperty());
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
         dateCol.setPrefWidth(100);
 
         TableColumn<Product, Void> actionsCol = new TableColumn<>("Actions");
@@ -298,21 +314,33 @@ public class ProductViewApp {
 
             {
                 viewBtn.setStyle("-fx-background-color: #17a2b8; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
-                editBtn.setStyle("-fx-background-color: #ffc107; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
+                editBtn.setStyle("-fx-background-color: #ffc107; -fx-text-fill: #333; -fx-font-size: 11px; -fx-padding: 5px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
                 deleteBtn.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
 
                 viewBtn.setOnAction(e -> {
                     Product product = getTableView().getItems().get(getIndex());
-                    showAlert("Détails du produit", product.getName() + "\nPrix: " + product.getPrice() + " FCFA\nStock: " + product.getStock());
+                    showAlert("Détails du produit", 
+                        "Nom: " + product.getName() + 
+                        "\nDescription: " + product.getDescription() +
+                        "\nPrix: " + String.format("%,d", (int)product.getPrice()) + " FCFA" +
+                        "\nStock: " + product.getStock() +
+                        "\nCatégorie: " + product.getCategoryName());
                 });
                 editBtn.setOnAction(e -> {
                     Product product = getTableView().getItems().get(getIndex());
-                    EditProductDialog dialog = new EditProductDialog(product, ProductViewApp.this::updateStatistics);
+                    EditProductDialog dialog = new EditProductDialog(product, () -> {
+                        updateStatistics();
+                        if (onUpdate != null) onUpdate.run();
+                    });
                     dialog.showAndWait();
                 });
                 deleteBtn.setOnAction(e -> {
                     Product product = getTableView().getItems().get(getIndex());
-                    DeleteProductDialog dialog = new DeleteProductDialog(product, products, ProductViewApp.this::updateStatistics);
+                    DeleteProductDialog dialog = new DeleteProductDialog(product, products, () -> {
+                        updateStatistics();
+                        filterProducts();
+                        if (onUpdate != null) onUpdate.run();
+                    });
                     dialog.showAndWait();
                 });
 
@@ -333,7 +361,6 @@ public class ProductViewApp {
         VBox card = new VBox(0);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 10px; -fx-border-color: #e9ecef; -fx-border-width: 1px;");
         card.getChildren().addAll(tableHeader, tableView);
-        VBox.setVgrow(card, Priority.ALWAYS);
 
         tableContainer.getChildren().add(card);
         VBox.setVgrow(tableContainer, Priority.ALWAYS);
@@ -359,8 +386,11 @@ public class ProductViewApp {
         String sort = sortFilter.getValue();
 
         filteredProducts.setPredicate(product -> {
-            boolean matchSearch = search.isEmpty() || product.getName().toLowerCase().contains(search);
-            boolean matchCategory = category.equals("Toutes les catégories") || product.getCategory().equals(category);
+            boolean matchSearch = search.isEmpty() || 
+                product.getName().toLowerCase().contains(search) ||
+                product.getDescription().toLowerCase().contains(search);
+            boolean matchCategory = category.equals("Toutes les catégories") || 
+                product.getCategoryName().equals(category);
             return matchSearch && matchCategory;
         });
 
@@ -390,8 +420,16 @@ public class ProductViewApp {
                 case "Stock (décroissant)":
                     products.sort((a, b) -> Integer.compare(b.getStock(), a.getStock()));
                     break;
+                default:
+                    break;
             }
         }
+        
+        // Mise à jour du compteur
+        int count = filteredProducts.size();
+        Label tableTitle = (Label) ((HBox) ((VBox) tableView.getParent()).getChildren().get(0)).getChildren().get(0);
+        Label countLabel = (Label) ((HBox) ((VBox) tableView.getParent()).getChildren().get(0)).getChildren().get(1);
+        countLabel.setText("(" + count + " produit(s) au total)");
     }
 
     private void resetFilters() {
@@ -405,7 +443,7 @@ public class ProductViewApp {
         int totalProducts = products.size();
         int totalQuantity = products.stream().mapToInt(Product::getStock).sum();
         double totalValue = products.stream().mapToDouble(p -> p.getPrice() * p.getStock()).sum();
-        long lowStock = products.stream().filter(p -> p.getStock() < 5).count();
+        long lowStock = products.stream().filter(p -> p.getStock() < 5 && p.getStock() > 0).count();
 
         totalProductsLabel.setText(String.valueOf(totalProducts));
         totalQuantityLabel.setText(String.valueOf(totalQuantity));
