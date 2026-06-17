@@ -10,13 +10,38 @@ import com.inapp.view.auth.Logout;
 import com.inapp.view.admin.Dashboard;
 import com.inapp.view.components.AdminSidebar;
 import com.inapp.view.components.Footer;
+import com.inapp.view.front.Client.ClientsListView;
+import com.inapp.view.front.Client.AddClientView;
+import com.inapp.view.front.Client.EditClientView;
+import com.inapp.view.front.Client.ViewClientView;
 import javafx.scene.layout.BorderPane;
 
 public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        NavigationManager navigationManager = new NavigationManager(primaryStage);
+        NavigationManager navigationManager = new NavigationManager(primaryStage) {
+            @Override
+            public void navigateTo(String name) {
+                // Vues client dynamiques (recréées à chaque navigation pour des données fraîches)
+                if (name.equals("clients")) {
+                    registerView(name, new ClientsListView(this));
+                } else if (name.equals("clientAdd")) {
+                    registerView(name, new AddClientView(this));
+                } else if (name.startsWith("clientEdit?id=")) {
+                    try {
+                        int id = Integer.parseInt(name.split("=")[1]);
+                        registerView(name, new EditClientView(this, id));
+                    } catch (Exception ignored) {}
+                } else if (name.startsWith("clientView?id=")) {
+                    try {
+                        int id = Integer.parseInt(name.split("=")[1]);
+                        registerView(name, new ViewClientView(this, id));
+                    } catch (Exception ignored) {}
+                }
+                super.navigateTo(name);
+            }
+        };
 
         // Vues d'authentification
         navigationManager.registerView("login", new Login(navigationManager));
@@ -37,8 +62,11 @@ public class MainApplication extends Application {
         navigationManager.registerView("factures", frontDashboard);
         navigationManager.registerView("categories", frontDashboard);
         navigationManager.registerView("products", frontDashboard);
-        navigationManager.registerView("clients", frontDashboard);
         navigationManager.registerView("reports", frontDashboard);
+
+        // Module Clients (notre partie)
+        navigationManager.registerView("clients", new ClientsListView(navigationManager));
+        navigationManager.registerView("clientAdd", new AddClientView(navigationManager));
 
         // Vues admin spécifiques (utilisées par la sidebar super admin)
         // On les garde mais on les redirige temporairement vers adminDashboard
