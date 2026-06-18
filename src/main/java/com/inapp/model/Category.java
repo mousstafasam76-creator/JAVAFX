@@ -1,7 +1,6 @@
 package com.inapp.model;
 
 import javafx.beans.property.*;
-import javafx.scene.image.Image;
 
 public class Category {
     private final IntegerProperty id = new SimpleIntegerProperty();
@@ -10,7 +9,7 @@ public class Category {
     private final StringProperty status = new SimpleStringProperty();
     private final IntegerProperty productsCount = new SimpleIntegerProperty(0);
     private final DoubleProperty stockValue = new SimpleDoubleProperty(0);
-    private final ObjectProperty<Image> image = new SimpleObjectProperty<>();
+    private final ObjectProperty<javafx.scene.image.Image> image = new SimpleObjectProperty<>();
     private final StringProperty imageUrl = new SimpleStringProperty();
     
     public Category() {}
@@ -46,9 +45,9 @@ public class Category {
     public void setStockValue(double v) { stockValue.set(v); }
     public DoubleProperty stockValueProperty() { return stockValue; }
     
-    public Image getImage() { return image.get(); }
-    public void setImage(Image v) { image.set(v); }
-    public ObjectProperty<Image> imageProperty() { return image; }
+    public javafx.scene.image.Image getImage() { return image.get(); }
+    public void setImage(javafx.scene.image.Image v) { image.set(v); }
+    public ObjectProperty<javafx.scene.image.Image> imageProperty() { return image; }
     
     public String getImageUrl() { return imageUrl.get(); }
     public void setImageUrl(String v) { imageUrl.set(v); }

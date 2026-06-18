@@ -23,10 +23,8 @@ public class NavigationManager {
         this.views = new HashMap<>();
         this.history = new Stack<>();
         this.rootContainer = new StackPane();
-        // FENÊTRE PLUS GRANDE - 1400x1000
         this.currentScene = new Scene(rootContainer, 1400, 1000);
         
-        // Chargement du CSS
         try {
             String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
             this.currentScene.getStylesheets().add(cssPath);
@@ -36,9 +34,10 @@ public class NavigationManager {
         }
         
         this.primaryStage.setScene(currentScene);
-        // Définir une taille minimale
         this.primaryStage.setMinHeight(700);
         this.primaryStage.setMinWidth(1200);
+        
+        // Aucun enregistrement de "categoriesList" ici
     }
     
     public void registerView(String name, Parent view) {
