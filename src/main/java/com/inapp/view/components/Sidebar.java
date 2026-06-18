@@ -1,4 +1,4 @@
- package com.inapp.view.components;
+package com.inapp.view.components;
 
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Insets;
@@ -9,42 +9,42 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
 import com.inapp.utils.NavigationManager;
+import com.inapp.view.front.Dashboard;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Sidebar extends StackPane {
 
     private NavigationManager navigationManager;
+    private Dashboard dashboard;
     private String currentPage = "";
     private Map<String, Button> menuButtons;
     private boolean isCollapsed = false;
     private double expandedWidth = 260;
-    private double collapsedWidth = 70;  // largeur réduite
+    private double collapsedWidth = 70;
     private HBox logoFullBox;
-    private ImageView logoSmall;
     private VBox navContainer;
     private HBox logoArea;
     private VBox contentBox;
 
-    public Sidebar(NavigationManager navManager) {
+    public Sidebar(NavigationManager navManager, Dashboard dashboard) {
         this.navigationManager = navManager;
+        this.dashboard = dashboard;
         this.menuButtons = new HashMap<>();
         setPrefWidth(expandedWidth);
         setMinWidth(expandedWidth);
         setMaxWidth(expandedWidth);
         setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-width: 0 1 0 0;");
         setAlignment(Pos.TOP_CENTER);
-
         setupUI();
         setCurrentPage("dashboard");
     }
 
     private void setupUI() {
-        // Conteneur principal (vertical)
         contentBox = new VBox(0);
         contentBox.setFillWidth(true);
 
-        // ========== LOGO + BOUTON TOGGLE ==========
+        // LOGO + TOGGLE
         logoArea = new HBox(0);
         logoArea.setAlignment(Pos.CENTER_LEFT);
         logoArea.setPadding(new Insets(12, 10, 12, 10));
@@ -52,7 +52,6 @@ public class Sidebar extends StackPane {
         logoArea.setPrefHeight(60);
         logoArea.setMinHeight(60);
 
-        // Logo (image ou texte)
         logoFullBox = new HBox(8);
         logoFullBox.setAlignment(Pos.CENTER_LEFT);
         boolean logoLoaded = false;
@@ -78,12 +77,8 @@ public class Sidebar extends StackPane {
         }
         logoFullBox.setVisible(true);
 
-        // Bouton de réduction
         Button toggleBtn = new Button("☰");
-        toggleBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #6c757d; " +
-            "-fx-font-size: 20px; -fx-cursor: hand; -fx-padding: 5;"
-        );
+        toggleBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #6c757d; -fx-font-size: 20px; -fx-cursor: hand; -fx-padding: 5;");
         toggleBtn.setOnAction(e -> toggleCollapse());
         HBox.setHgrow(toggleBtn, Priority.NEVER);
         toggleBtn.setMaxWidth(40);
@@ -91,40 +86,32 @@ public class Sidebar extends StackPane {
 
         Region logoSpacer = new Region();
         HBox.setHgrow(logoSpacer, Priority.ALWAYS);
-
         logoArea.getChildren().addAll(logoFullBox, logoSpacer, toggleBtn);
 
-        // ========== CONTENEUR DES MENUS (sans ScrollPane) ==========
+        // MENU
         navContainer = new VBox(3);
         navContainer.setPadding(new Insets(5, 0, 20, 0));
 
-        // Principal
         navContainer.getChildren().add(createSectionLabel("Principal"));
         navContainer.getChildren().add(createNavButton("🏠", "Tableau de bord", "dashboard"));
 
-        // Ventes
         navContainer.getChildren().add(createSectionLabel("Ventes"));
         navContainer.getChildren().add(createNavButton("🚚", "Commandes", "commandes"));
         navContainer.getChildren().add(createNavButton("📄", "Factures", "factures"));
 
-        // Catalogue
         navContainer.getChildren().add(createSectionLabel("Catalogue"));
         navContainer.getChildren().add(createNavButton("📁", "Catégories", "categoriesList"));
         navContainer.getChildren().add(createNavButton("📦", "Produits", "productsList"));
 
-        // Clients
         navContainer.getChildren().add(createSectionLabel("Clients"));
         navContainer.getChildren().add(createNavButton("👥", "Clients", "clients"));
 
-        // Rapports
         navContainer.getChildren().add(createSectionLabel("Rapports"));
         navContainer.getChildren().add(createNavButton("📊", "Rapports", "reports"));
 
-        // Compte
         navContainer.getChildren().add(createSectionLabel("Compte"));
         navContainer.getChildren().add(createNavButton("🚪", "Déconnexion", "login"));
 
-        // Pas de ScrollPane : on utilise VBox.setVgrow pour que le fond prenne l'espace restant
         Region filler = new Region();
         VBox.setVgrow(filler, Priority.ALWAYS);
         navContainer.getChildren().add(filler);
@@ -146,15 +133,7 @@ public class Sidebar extends StackPane {
         btn.setMaxWidth(Double.MAX_VALUE);
         btn.setAlignment(Pos.CENTER_LEFT);
         btn.setPadding(new Insets(10, 15, 10, 20));
-        // Fond légèrement grisé pour éviter l'effet "blanc sur blanc"
-        btn.setStyle(
-            "-fx-background-color: #f8f9fa; " +   // gris très clair
-            "-fx-text-fill: #495057; " +
-            "-fx-background-radius: 0; " +
-            "-fx-border-color: transparent; " +
-            "-fx-border-width: 0 0 0 3px; " +
-            "-fx-cursor: hand;"
-        );
+        btn.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #495057; -fx-background-radius: 0; -fx-border-color: transparent; -fx-border-width: 0 0 0 3px; -fx-cursor: hand;");
 
         HBox content = new HBox(10);
         content.setAlignment(Pos.CENTER_LEFT);
@@ -167,28 +146,14 @@ public class Sidebar extends StackPane {
 
         btn.setOnMouseEntered(e -> {
             if (!btn.getStyle().contains("-fx-border-color: #FF8C00")) {
-                btn.setStyle(
-                    "-fx-background-color: rgba(255, 165, 0, 0.08); " +
-                    "-fx-text-fill: #FF8C00; " +
-                    "-fx-background-radius: 0; " +
-                    "-fx-border-color: rgba(255, 140, 0, 0.5); " +
-                    "-fx-border-width: 0 0 0 3px; " +
-                    "-fx-cursor: hand;"
-                );
+                btn.setStyle("-fx-background-color: rgba(255, 165, 0, 0.08); -fx-text-fill: #FF8C00; -fx-background-radius: 0; -fx-border-color: rgba(255, 140, 0, 0.5); -fx-border-width: 0 0 0 3px; -fx-cursor: hand;");
                 iconLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #FF8C00;");
                 textLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #FF8C00;");
             }
         });
         btn.setOnMouseExited(e -> {
             if (!btn.getStyle().contains("-fx-border-color: #FF8C00")) {
-                btn.setStyle(
-                    "-fx-background-color: #f8f9fa; " +
-                    "-fx-text-fill: #495057; " +
-                    "-fx-background-radius: 0; " +
-                    "-fx-border-color: transparent; " +
-                    "-fx-border-width: 0 0 0 3px; " +
-                    "-fx-cursor: hand;"
-                );
+                btn.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #495057; -fx-background-radius: 0; -fx-border-color: transparent; -fx-border-width: 0 0 0 3px; -fx-cursor: hand;");
                 iconLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #495057;");
                 textLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #495057;");
             }
@@ -196,7 +161,13 @@ public class Sidebar extends StackPane {
 
         btn.setOnAction(e -> {
             setActiveButton(pageId);
-            navigationManager.navigateTo(pageId);
+            if ("categoriesList".equals(pageId)) {
+                dashboard.showCategoryIndex();   // Navigation interne vers la grille des catégories
+            } else if ("dashboard".equals(pageId)) {
+                dashboard.resetToDefault();
+            } else {
+                navigationManager.navigateTo(pageId);
+            }
         });
 
         menuButtons.put(pageId, btn);
@@ -211,26 +182,11 @@ public class Sidebar extends StackPane {
             Label textLabel = (Label) content.getChildren().get(1);
 
             if (entry.getKey().equals(pageId)) {
-                btn.setStyle(
-                    "-fx-background-color: rgba(255, 165, 0, 0.15); " +
-                    "-fx-text-fill: #FF8C00; " +
-                    "-fx-background-radius: 0; " +
-                    "-fx-border-color: #FF8C00; " +
-                    "-fx-border-width: 0 0 0 3px; " +
-                    "-fx-font-weight: 500; " +
-                    "-fx-cursor: hand;"
-                );
+                btn.setStyle("-fx-background-color: rgba(255, 165, 0, 0.15); -fx-text-fill: #FF8C00; -fx-background-radius: 0; -fx-border-color: #FF8C00; -fx-border-width: 0 0 0 3px; -fx-font-weight: 500; -fx-cursor: hand;");
                 iconLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #FF8C00;");
                 textLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #FF8C00; -fx-font-weight: 500;");
             } else {
-                btn.setStyle(
-                    "-fx-background-color: #f8f9fa; " +
-                    "-fx-text-fill: #495057; " +
-                    "-fx-background-radius: 0; " +
-                    "-fx-border-color: transparent; " +
-                    "-fx-border-width: 0 0 0 3px; " +
-                    "-fx-cursor: hand;"
-                );
+                btn.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #495057; -fx-background-radius: 0; -fx-border-color: transparent; -fx-border-width: 0 0 0 3px; -fx-cursor: hand;");
                 iconLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #495057;");
                 textLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #495057;");
             }
@@ -240,12 +196,10 @@ public class Sidebar extends StackPane {
     public void toggleCollapse() {
         isCollapsed = !isCollapsed;
         TranslateTransition tt = new TranslateTransition(Duration.millis(300), this);
-
         if (isCollapsed) {
             setPrefWidth(collapsedWidth);
             setMinWidth(collapsedWidth);
             setMaxWidth(collapsedWidth);
-            // Cache le texte des boutons et le logo complet
             for (Button btn : menuButtons.values()) {
                 HBox content = (HBox) btn.getGraphic();
                 if (content.getChildren().size() > 1) {
@@ -257,7 +211,6 @@ public class Sidebar extends StackPane {
                 ((HBox) btn.getGraphic()).setSpacing(0);
             }
             if (logoFullBox != null) logoFullBox.setVisible(false);
-            // On pourrait afficher un petit logo réduit, mais pour l'instant on laisse vide
         } else {
             setPrefWidth(expandedWidth);
             setMinWidth(expandedWidth);

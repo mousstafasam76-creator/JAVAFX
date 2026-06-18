@@ -27,7 +27,7 @@ public class MainApplication extends Application {
         // Vue admin (super admin)
         navigationManager.registerView("adminDashboard", createAdminLayout(navigationManager));
 
-        // Vue front (utilisateur normal) – on la crée une fois et on la réutilise
+        // Vue front (utilisateur normal)
         com.inapp.view.front.Dashboard frontDashboard = new com.inapp.view.front.Dashboard(navigationManager);
         navigationManager.registerView("frontDashboard", frontDashboard);
 
@@ -40,8 +40,9 @@ public class MainApplication extends Application {
         navigationManager.registerView("clients", frontDashboard);
         navigationManager.registerView("reports", frontDashboard);
 
-        // Vues admin spécifiques (utilisées par la sidebar super admin)
-        // On les garde mais on les redirige temporairement vers adminDashboard
+        // (Plus d'enregistrement pour "categoriesList")
+
+        // Vues admin spécifiques
         navigationManager.registerView("usersList", createAdminLayout(navigationManager));
         navigationManager.registerView("userAdd", createAdminLayout(navigationManager));
         navigationManager.registerView("categoryAdd", createAdminLayout(navigationManager));
@@ -49,7 +50,6 @@ public class MainApplication extends Application {
         navigationManager.registerView("productAdd", createAdminLayout(navigationManager));
         navigationManager.registerView("statistics", createAdminLayout(navigationManager));
 
-        // Page de démarrage
         navigationManager.navigateTo("login");
 
         primaryStage.setTitle("PowerStock - Gestion Électroménager");
