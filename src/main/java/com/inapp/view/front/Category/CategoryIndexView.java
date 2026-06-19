@@ -1,16 +1,17 @@
 package com.inapp.view.front.Category;
 
-import javafx.animation.FadeTransition;
-import javafx.animation.ScaleTransition;
+import javafx.animation.*;
 import javafx.collections.FXCollections;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
@@ -49,7 +50,7 @@ public class CategoryIndexView extends VBox {
     private Label pageInfo;
     private Button prevBtn, nextBtn;
     private int currentPage = 0;
-    private final int ITEMS_PER_PAGE = 9; // 3 colonnes x 3 lignes
+    private final int ITEMS_PER_PAGE = 9;
     private Dashboard dashboard;
     private VBox notificationPanel;
 
@@ -289,14 +290,14 @@ public class CategoryIndexView extends VBox {
         for (CategoryDisplay data : categoriesPage) {
             VBox carte = creerCarte(data);
             cardsContainer.getChildren().add(carte);
-            FadeTransition ft = new FadeTransition(Duration.millis(300), carte);
+            // Apparition plus douce
+            FadeTransition ft = new FadeTransition(Duration.millis(350), carte);
             ft.setFromValue(0);
             ft.setToValue(1);
             ft.play();
         }
     }
 
-    // ========== CARTE COMPACTE (3 par ligne, boutons en texte complet) ==========
     private VBox creerCarte(CategoryDisplay data) {
         com.inapp.model.Category cat = data.model;
         VBox carte = new VBox(8);
@@ -307,15 +308,29 @@ public class CategoryIndexView extends VBox {
                 "-fx-max-width: 240; " +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);");
 
-        // Animation survol
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), carte);
+        // ===== Animation survol (carte) =====
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(200), carte);
         scaleIn.setToX(1.02);
         scaleIn.setToY(1.02);
-        ScaleTransition scaleOut = new ScaleTransition(Duration.millis(150), carte);
+        TranslateTransition translateIn = new TranslateTransition(Duration.millis(200), carte);
+        translateIn.setToY(-6);
+        ParallelTransition parallelIn = new ParallelTransition(scaleIn, translateIn);
+
+        ScaleTransition scaleOut = new ScaleTransition(Duration.millis(200), carte);
         scaleOut.setToX(1);
         scaleOut.setToY(1);
-        carte.setOnMouseEntered(e -> scaleIn.playFromStart());
-        carte.setOnMouseExited(e -> scaleOut.playFromStart());
+        TranslateTransition translateOut = new TranslateTransition(Duration.millis(200), carte);
+        translateOut.setToY(0);
+        ParallelTransition parallelOut = new ParallelTransition(scaleOut, translateOut);
+
+        carte.setOnMouseEntered(e -> {
+            carte.setEffect(new DropShadow(15, Color.rgb(0,0,0,0.2)));
+            parallelIn.playFromStart();
+        });
+        carte.setOnMouseExited(e -> {
+            carte.setEffect(new DropShadow(8, Color.rgb(0,0,0,0.1)));
+            parallelOut.playFromStart();
+        });
 
         // Image
         ImageView imageView = new ImageView();
@@ -373,7 +388,7 @@ public class CategoryIndexView extends VBox {
         valeurLabel.setStyle("-fx-text-fill: #2c3e50; -fx-font-size: 10px;");
         statsBox.getChildren().addAll(produitsLabel, valeurLabel);
 
-        // ===== BOUTONS AVEC LEURS NOMS COMPLETS =====
+        // ===== BOUTONS =====
         HBox buttonsBox = new HBox(6);
         buttonsBox.setAlignment(Pos.CENTER);
 
@@ -395,7 +410,6 @@ public class CategoryIndexView extends VBox {
         return carte;
     }
 
-    // Style des boutons avec texte complet
     private void styleButton(Button btn, String color1, String color2, double prefWidth) {
         btn.setPrefWidth(prefWidth);
         btn.setPrefHeight(28);
@@ -412,15 +426,23 @@ public class CategoryIndexView extends VBox {
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 3, 0, 0, 1);"
         );
 
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(120), btn);
-        scaleIn.setToX(1.08);
-        scaleIn.setToY(1.08);
-        ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), btn);
+        // ===== Animation bouton (rebond + rotation) =====
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
+        scaleIn.setToX(1.10);
+        scaleIn.setToY(1.10);
+        RotateTransition rotateIn = new RotateTransition(Duration.millis(150), btn);
+        rotateIn.setByAngle(2);
+        ParallelTransition parallelIn = new ParallelTransition(scaleIn, rotateIn);
+
+        ScaleTransition scaleOut = new ScaleTransition(Duration.millis(150), btn);
         scaleOut.setToX(1);
         scaleOut.setToY(1);
+        RotateTransition rotateOut = new RotateTransition(Duration.millis(150), btn);
+        rotateOut.setToAngle(0);
+        ParallelTransition parallelOut = new ParallelTransition(scaleOut, rotateOut);
 
         btn.setOnMouseEntered(e -> {
-            scaleIn.playFromStart();
+            parallelIn.playFromStart();
             btn.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " + color1 + ", " + color2 + "); " +
                 "-fx-text-fill: white; " +
@@ -434,7 +456,7 @@ public class CategoryIndexView extends VBox {
             );
         });
         btn.setOnMouseExited(e -> {
-            scaleOut.playFromStart();
+            parallelOut.playFromStart();
             btn.setStyle(
                 "-fx-background-color: white; " +
                 "-fx-text-fill: " + color1 + "; " +
