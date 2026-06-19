@@ -88,50 +88,51 @@ public class Edit extends VBox {
     
     private void loadData() {
         new Thread(() -> {
-            clients = commandeService.getAllClients();
-            produits = commandeService.getAllProduits();
-            commande = commandeService.getCommandeById(commandeId);
-            existingDetails = commandeService.getCommandeDetails(commandeId);
-            
-            Platform.runLater(() -> {
-                if (commande == null) {
-                    AlertUtils.showErrorMessage("Commande non trouvée");
-                    navigationManager.navigateTo("commandesList");
-                    return;
-                }
+            try {
+                clients = commandeService.getAllClients();
+                produits = commandeService.getAllProduits();
+                commande = commandeService.getCommandeById(commandeId);
+                existingDetails = commandeService.getCommandeDetails(commandeId);
                 
-                // Sélectionner le client
-                for (Client c : clients) {
-                    if (c.getId() == commande.getClientId()) {
-                        clientSelect.setValue(c);
-                        break;
+                Platform.runLater(() -> {
+                    if (commande == null) {
+                        AlertUtils.showErrorMessage("Commande non trouvée");
+                        navigationManager.navigateTo("commandesList");
+                        return;
                     }
-                }
-                
-                // Date
-                if (commande.getDateCommande() != null) {
-                    datePicker.setValue(commande.getDateCommande());
-                }
-                
-                // Charger les produits existants
-                for (Map<String, Object> detail : existingDetails) {
-                    int produitId = (int) detail.get("produit_id");
-                    int quantite = (int) detail.get("quantite");
-                    int prix = (int) detail.get("prix_unitaire");
                     
-                    for (Produit p : produits) {
-                        if (p.getId() == produitId) {
-                            EditProduitLine line = new EditProduitLine(produits, this::calculateTotal, this::showToast);
-                            line.setProduct(p, quantite, prix);
-                            produitLines.add(line);
-                            produitsContainer.getChildren().add(line);
+                    for (Client c : clients) {
+                        if (c.getId() == commande.getClientId()) {
+                            clientSelect.setValue(c);
                             break;
                         }
                     }
-                }
-                
-                calculateTotal();
-            });
+                    
+                    if (commande.getDateCommande() != null) {
+                        datePicker.setValue(commande.getDateCommande());
+                    }
+                    
+                    for (Map<String, Object> detail : existingDetails) {
+                        int produitId = (int) detail.get("produit_id");
+                        int quantite = (int) detail.get("quantite");
+                        int prix = (int) detail.get("prix_unitaire");
+                        
+                        for (Produit p : produits) {
+                            if (p.getId() == produitId) {
+                                EditProduitLine line = new EditProduitLine(produits, this::calculateTotal, this::showToast);
+                                line.setProduct(p, quantite, prix);
+                                produitLines.add(line);
+                                produitsContainer.getChildren().add(line);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    calculateTotal();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur de chargement: " + e.getMessage()));
+            }
         }).start();
     }
     
@@ -329,10 +330,11 @@ public class Edit extends VBox {
     }
     
     private void addProduitLine() {
-        if (produits == null) return;
+        if (produits == null || produits.isEmpty()) return;
         EditProduitLine line = new EditProduitLine(produits, this::calculateTotal, this::showToast);
         produitLines.add(line);
         produitsContainer.getChildren().add(line);
+        calculateTotal();
     }
     
     private VBox createTotalSection() {
@@ -425,8 +427,9 @@ public class Edit extends VBox {
             if (line.isActive() && line.getSelectedProduct() != null && line.getQuantity() > 0) {
                 hasProduct = true;
                 Map<String, Integer> item = new HashMap<>();
-                item.put("id", line.getSelectedProduct().getId());
-                item.put("qty", line.getQuantity());
+                item.put("produit_id", line.getSelectedProduct().getId());
+                item.put("quantite", line.getQuantity());
+                item.put("prix_unitaire", (int) line.getSelectedProduct().getPrix());
                 items.add(item);
             }
         }
@@ -449,14 +452,12 @@ public class Edit extends VBox {
                 Platform.runLater(() -> {
                     AlertUtils.showSuccessMessage("Commande modifiée avec succès !");
                     
-                    // Rafraîchir la liste des commandes si elle existe
                     Parent view = navigationManager.getViewInstance("commandesList");
                     if (view instanceof CommandeListView) {
                         ((CommandeListView) view).refreshData();
                         System.out.println("📋 CommandeListView rafraîchie");
                     }
                     
-                    // Retourner à la liste
                     navigationManager.navigateTo("commandesList");
                 });
             } catch (Exception e) {

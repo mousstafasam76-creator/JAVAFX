@@ -21,12 +21,14 @@ public class FactureDetail {
     private static int factureId;
     private FactureController controller;
     private Runnable backToList;
+    private Runnable navigateToEdit;
     private Runnable navigateToPrint;
 
     public FactureDetail(FactureController controller) { this.controller = controller; }
     public static void setFactureId(int id) { factureId = id; }
     public static int getFactureId() { return factureId; }
     public void setBackToList(Runnable r) { this.backToList = r; }
+    public void setNavigateToEdit(Runnable r) { this.navigateToEdit = r; }
     public void setNavigateToPrint(Runnable r) { this.navigateToPrint = r; }
 
     public VBox createView() {

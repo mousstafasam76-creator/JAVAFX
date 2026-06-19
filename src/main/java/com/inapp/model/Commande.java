@@ -35,7 +35,28 @@ public class Commande {
         setProduits(produits);
     }
     
-    // Getters
+    // Constructeur simplifié pour la liste
+    public Commande(int id, String clientName, LocalDate dateCommande, String statut, int totalTtc, String produits) {
+        setId(id);
+        setClientName(clientName);
+        setDateCommande(dateCommande);
+        setStatut(statut);
+        setTotalTtc(totalTtc);
+        setProduits(produits);
+    }
+    
+    // Constructeur pour les détails
+    public Commande(int id, int clientId, String clientName, String clientTel, LocalDate dateCommande, String statut, int totalTtc) {
+        setId(id);
+        setClientId(clientId);
+        setClientName(clientName);
+        setClientTel(clientTel);
+        setDateCommande(dateCommande);
+        setStatut(statut);
+        setTotalTtc(totalTtc);
+    }
+    
+    // ========== GETTERS ==========
     public int getId() { return id.get(); }
     public int getClientId() { return clientId.get(); }
     public String getClientName() { return clientName.get(); }
@@ -49,7 +70,7 @@ public class Commande {
     public String getProduits() { return produits.get(); }
     public boolean isSelected() { return selected.get(); }
     
-    // Setters
+    // ========== SETTERS ==========
     public void setId(int v) { id.set(v); }
     public void setClientId(int v) { clientId.set(v); }
     public void setClientName(String v) { clientName.set(v); }
@@ -63,7 +84,7 @@ public class Commande {
     public void setProduits(String v) { produits.set(v); }
     public void setSelected(boolean v) { selected.set(v); }
     
-    // Properties
+    // ========== PROPERTIES ==========
     public IntegerProperty idProperty() { return id; }
     public IntegerProperty clientIdProperty() { return clientId; }
     public StringProperty clientNameProperty() { return clientName; }
@@ -76,4 +97,9 @@ public class Commande {
     public IntegerProperty createdByProperty() { return createdBy; }
     public StringProperty produitsProperty() { return produits; }
     public BooleanProperty selectedProperty() { return selected; }
+    
+    @Override
+    public String toString() {
+        return "Commande #" + getId() + " - " + getClientName();
+    }
 }

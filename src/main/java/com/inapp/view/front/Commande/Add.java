@@ -49,8 +49,8 @@ public class Add extends VBox {
         this.commandeService = new CommandeService();
         this.produitLines = new ArrayList<>();
         loadFontAwesome();
-        loadData();
         setupUI();
+        loadData();
     }
     
     private void loadFontAwesome() {
@@ -82,13 +82,16 @@ public class Add extends VBox {
     
     private void loadData() {
         new Thread(() -> {
-            clients = commandeService.getAllClients();
-            produits = commandeService.getAllProduits();
-            Platform.runLater(() -> {
-                clientSelect.getItems().addAll(clients);
-                // Ajouter une ligne par défaut
-                addProduitLine();
-            });
+            try {
+                clients = commandeService.getAllClients();
+                produits = commandeService.getAllProduits();
+                Platform.runLater(() -> {
+                    clientSelect.getItems().addAll(clients);
+                    addProduitLine();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> AlertUtils.showErrorMessage("Erreur de chargement: " + e.getMessage()));
+            }
         }).start();
     }
     
@@ -286,10 +289,11 @@ public class Add extends VBox {
     }
     
     private void addProduitLine() {
-        if (produits == null) return;
+        if (produits == null || produits.isEmpty()) return;
         ProduitLine line = new ProduitLine(produits, this::calculateTotal, this::showToast);
         produitLines.add(line);
         produitsContainer.getChildren().add(line);
+        calculateTotal();
     }
     
     private VBox createTotalSection() {
@@ -382,8 +386,9 @@ public class Add extends VBox {
             if (line.isActive() && line.getSelectedProduct() != null && line.getQuantity() > 0) {
                 hasProduct = true;
                 Map<String, Integer> item = new HashMap<>();
-                item.put("id", line.getSelectedProduct().getId());
-                item.put("qty", line.getQuantity());
+                item.put("produit_id", line.getSelectedProduct().getId());
+                item.put("quantite", line.getQuantity());
+                item.put("prix_unitaire", (int) line.getSelectedProduct().getPrix());
                 items.add(item);
             }
         }

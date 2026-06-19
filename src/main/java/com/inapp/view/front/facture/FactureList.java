@@ -22,6 +22,7 @@ public class FactureList {
     private String currentFilter = "all";
     private Runnable navigateToDetail;
     private Runnable navigateToForm;
+    private int selectedFactureId = 0;  // ✅ AJOUTÉ
 
     private TableView<Facture> table;
     private TextField searchField;
@@ -33,6 +34,9 @@ public class FactureList {
     public FactureList(FactureController controller) { this.controller = controller; }
     public void setNavigateToDetail(Runnable r) { this.navigateToDetail = r; }
     public void setNavigateToForm(Runnable r) { this.navigateToForm = r; }
+    
+    // ✅ AJOUTÉ
+    public int getSelectedFactureId() { return selectedFactureId; }
 
     public VBox createView() {
         table = new TableView<>();
@@ -189,6 +193,7 @@ public class FactureList {
                 box.setAlignment(Pos.CENTER);
                 btnVoir.setOnAction(e -> {
                     Facture f = getTableView().getItems().get(getIndex());
+                    selectedFactureId = f.getId();  // ✅ Stocke l'ID
                     FactureDetail.setFactureId(f.getId());
                     if (navigateToDetail != null) navigateToDetail.run();
                 });

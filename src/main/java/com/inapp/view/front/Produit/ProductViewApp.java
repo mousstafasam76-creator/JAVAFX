@@ -1,6 +1,7 @@
 package com.inapp.view.front.Produit;
 
 import javafx.animation.ScaleTransition;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -9,12 +10,15 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
 import com.inapp.model.Product;
+import com.inapp.controller.front.ProductController;
 import java.util.Comparator;
 
 public class ProductViewApp {
@@ -31,10 +35,12 @@ public class ProductViewApp {
     private Label lowStockLabel;
     private TableView<Product> tableView;
     private Runnable onUpdate;
+    private ProductController productController;
 
     public ProductViewApp() {
+        this.productController = ProductController.getInstance();
         rootView = createView();
-        loadSampleData();
+        loadData();
     }
 
     public Node getView() {
@@ -45,18 +51,43 @@ public class ProductViewApp {
         this.onUpdate = onUpdate;
     }
 
-    private void loadSampleData() {
-        products.addAll(
-            new Product(1, "Réfrigérateur Samsung", "Réfrigérateur double porte 450L", 350000, 15, "Électroménager", "Admin", "12/03/2026"),
-            new Product(2, "Machine à laver LG", "Machine à laver 8kg automatique", 280000, 8, "Électroménager", "Admin", "10/03/2026"),
-            new Product(3, "Climatiseur Panasonic", "Climatiseur split 12000 BTU", 220000, 3, "Climatisation", "Admin", "08/03/2026"),
-            new Product(4, "Four micro-ondes Whirlpool", "Micro-ondes 30L grill", 95000, 22, "Cuisine", "Admin", "05/03/2026"),
-            new Product(5, "Téléviseur Sony 55\"", "TV LED 4K Smart", 450000, 6, "Électronique", "Admin", "01/03/2026"),
-            new Product(6, "Aspirateur Dyson", "Aspirateur sans fil V15", 180000, 0, "Électroménager", "Admin", "28/02/2026"),
-            new Product(7, "Cafetière Delonghi", "Machine espresso automatique", 150000, 12, "Cuisine", "Admin", "25/02/2026"),
-            new Product(8, "Congélateur Whirlpool", "Congélateur coffre 300L", 190000, 4, "Électroménager", "Admin", "20/02/2026")
-        );
-        updateStatistics();
+    private void loadData() {
+        new Thread(() -> {
+            try {
+                productController.loadProducts();
+                Platform.runLater(() -> {
+                    products.setAll(productController.getProducts());
+                    updateStatistics();
+                    filterProducts();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Erreur de chargement des produits: " + e.getMessage());
+                    alert.showAndWait();
+                });
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    public void refreshData() {
+        loadData();
+    }
+
+    private Image loadImage(String imagePath) {
+        if (imagePath == null || imagePath.isEmpty()) {
+            return null;
+        }
+        try {
+            String resourcePath = imagePath.startsWith("/") ? imagePath : "/" + imagePath;
+            java.io.InputStream is = getClass().getResourceAsStream(resourcePath);
+            if (is != null) {
+                return new Image(is);
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur chargement image: " + imagePath + " - " + e.getMessage());
+        }
+        return null;
     }
 
     private VBox createView() {
@@ -115,7 +146,7 @@ public class ProductViewApp {
             "-fx-font-size: 13px; -fx-padding: 10px 18px; -fx-background-radius: 8px; -fx-cursor: hand;"
         ));
         createButton.setOnAction(e -> {
-            CreateProductDialog dialog = new CreateProductDialog(products, this::updateStatistics);
+            CreateProductDialog dialog = new CreateProductDialog(products, this::refreshData);
             dialog.showAndWait();
         });
         animateButton(createButton);
@@ -191,7 +222,10 @@ public class ProductViewApp {
         filters.setAlignment(Pos.CENTER_LEFT);
 
         categoryFilter = new ComboBox<>();
-        categoryFilter.getItems().addAll("Toutes les catégories", "Électroménager", "Climatisation", "Cuisine", "Électronique");
+        // Charger les catégories depuis le contrôleur
+        ObservableList<String> categories = productController.getCategories();
+        categoryFilter.getItems().add("Toutes les catégories");
+        categoryFilter.getItems().addAll(categories);
         categoryFilter.setValue("Toutes les catégories");
         categoryFilter.setPrefWidth(200);
         categoryFilter.setStyle("-fx-border-color: #e0e0e0; -fx-border-radius: 8px; -fx-background-radius: 8px;");
@@ -242,15 +276,53 @@ public class ProductViewApp {
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setStyle("-fx-background-color: white; -fx-border-color: transparent;");
 
-        // Colonnes
+        // ========== COLONNE IMAGE ==========
+        TableColumn<Product, String> imageCol = new TableColumn<>("Image");
+        imageCol.setPrefWidth(80);
+        imageCol.setCellFactory(col -> new TableCell<Product, String>() {
+            private final ImageView imageView = new ImageView();
+            {
+                imageView.setFitWidth(50);
+                imageView.setFitHeight(50);
+                imageView.setPreserveRatio(true);
+                imageView.setStyle("-fx-background-radius: 4px; -fx-border-radius: 4px;");
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null || item.isEmpty()) {
+                    setGraphic(null);
+                    return;
+                }
+
+                Image image = loadImage(item);
+                if (image != null) {
+                    imageView.setImage(image);
+                    setGraphic(imageView);
+                } else {
+                    VBox placeholder = new VBox(2);
+                    placeholder.setAlignment(Pos.CENTER);
+                    Label icon = new Label("📷");
+                    icon.setFont(Font.font(20));
+                    placeholder.getChildren().add(icon);
+                    setGraphic(placeholder);
+                }
+            }
+        });
+        imageCol.setCellValueFactory(new PropertyValueFactory<>("imageUrl"));
+
+        // ========== COLONNE NOM ==========
         TableColumn<Product, String> nameCol = new TableColumn<>("Nom du produit");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         nameCol.setPrefWidth(180);
 
+        // ========== COLONNE DESCRIPTION ==========
         TableColumn<Product, String> descCol = new TableColumn<>("Description");
         descCol.setCellValueFactory(new PropertyValueFactory<>("description"));
         descCol.setPrefWidth(200);
 
+        // ========== COLONNE PRIX ==========
         TableColumn<Product, Number> priceCol = new TableColumn<>("Prix (FCFA)");
         priceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
         priceCol.setPrefWidth(120);
@@ -268,6 +340,7 @@ public class ProductViewApp {
             }
         });
 
+        // ========== COLONNE QUANTITÉ ==========
         TableColumn<Product, Number> stockCol = new TableColumn<>("Quantité");
         stockCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         stockCol.setPrefWidth(100);
@@ -279,7 +352,6 @@ public class ProductViewApp {
                     setText(null);
                 } else {
                     int value = item.intValue();
-                    String text = String.valueOf(value);
                     if (value == 0) {
                         setTextFill(Color.RED);
                     } else if (value < 5) {
@@ -287,29 +359,33 @@ public class ProductViewApp {
                     } else {
                         setTextFill(Color.GREEN);
                     }
-                    setText(text);
+                    setText(String.valueOf(value));
                 }
             }
         });
 
+        // ========== COLONNE CATÉGORIE ==========
         TableColumn<Product, String> catCol = new TableColumn<>("Catégorie");
         catCol.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
         catCol.setPrefWidth(130);
 
+        // ========== COLONNE CRÉATEUR ==========
         TableColumn<Product, String> creatorCol = new TableColumn<>("Créé par");
         creatorCol.setCellValueFactory(new PropertyValueFactory<>("creator"));
         creatorCol.setPrefWidth(110);
 
+        // ========== COLONNE DATE ==========
         TableColumn<Product, String> dateCol = new TableColumn<>("Date");
         dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
         dateCol.setPrefWidth(100);
 
+        // ========== COLONNE ACTIONS ==========
         TableColumn<Product, Void> actionsCol = new TableColumn<>("Actions");
         actionsCol.setPrefWidth(150);
         actionsCol.setCellFactory(col -> new TableCell<Product, Void>() {
-            private final Button viewBtn = new Button("👁");
+            private final Button viewBtn = new Button("👁️");
             private final Button editBtn = new Button("✏️");
-            private final Button deleteBtn = new Button("🗑");
+            private final Button deleteBtn = new Button("🗑️");
             private final HBox buttons = new HBox(6);
 
             {
@@ -330,6 +406,7 @@ public class ProductViewApp {
                     Product product = getTableView().getItems().get(getIndex());
                     EditProductDialog dialog = new EditProductDialog(product, () -> {
                         updateStatistics();
+                        filterProducts();
                         if (onUpdate != null) onUpdate.run();
                     });
                     dialog.showAndWait();
@@ -355,7 +432,7 @@ public class ProductViewApp {
             }
         });
 
-        tableView.getColumns().addAll(nameCol, descCol, priceCol, stockCol, catCol, creatorCol, dateCol, actionsCol);
+        tableView.getColumns().addAll(imageCol, nameCol, descCol, priceCol, stockCol, catCol, creatorCol, dateCol, actionsCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         VBox card = new VBox(0);
@@ -390,7 +467,7 @@ public class ProductViewApp {
                 product.getName().toLowerCase().contains(search) ||
                 product.getDescription().toLowerCase().contains(search);
             boolean matchCategory = category.equals("Toutes les catégories") || 
-                product.getCategoryName().equals(category);
+                (product.getCategoryName() != null && product.getCategoryName().equals(category));
             return matchSearch && matchCategory;
         });
 
@@ -425,11 +502,17 @@ public class ProductViewApp {
             }
         }
         
-        // Mise à jour du compteur
         int count = filteredProducts.size();
-        Label tableTitle = (Label) ((HBox) ((VBox) tableView.getParent()).getChildren().get(0)).getChildren().get(0);
-        Label countLabel = (Label) ((HBox) ((VBox) tableView.getParent()).getChildren().get(0)).getChildren().get(1);
-        countLabel.setText("(" + count + " produit(s) au total)");
+        try {
+            VBox card = (VBox) tableView.getParent();
+            HBox header = (HBox) card.getChildren().get(0);
+            Label countLabel = (Label) header.getChildren().get(1);
+            countLabel.setText("(" + count + " produit(s) au total)");
+        } catch (Exception e) {
+            // Ignorer les erreurs
+        }
+        
+        updateStatistics();
     }
 
     private void resetFilters() {
@@ -441,7 +524,7 @@ public class ProductViewApp {
 
     private void updateStatistics() {
         int totalProducts = products.size();
-        int totalQuantity = products.stream().mapToInt(Product::getStock).sum();
+        int totalQuantity = products.stream().mapToInt(p -> p.getStock()).sum();
         double totalValue = products.stream().mapToDouble(p -> p.getPrice() * p.getStock()).sum();
         long lowStock = products.stream().filter(p -> p.getStock() < 5 && p.getStock() > 0).count();
 

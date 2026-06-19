@@ -83,7 +83,6 @@ public class Detail extends VBox {
         HBox cardsRow = new HBox(20);
         cardsRow.setAlignment(Pos.CENTER);
         
-        // Carte client
         VBox clientCard = new VBox(15);
         clientCard.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 16px; -fx-border-color: #e2e8f0; -fx-border-width: 1px;");
         clientCard.setPadding(new Insets(20));
@@ -101,7 +100,6 @@ public class Detail extends VBox {
         clientInfo.setStyle("-fx-padding: 0 0 0 28;");
         clientCard.getChildren().addAll(clientTitle, clientInfo);
         
-        // Carte commande
         VBox commandeCard = new VBox(15);
         commandeCard.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 16px; -fx-border-color: #e2e8f0; -fx-border-width: 1px;");
         commandeCard.setPadding(new Insets(20));
@@ -136,7 +134,6 @@ public class Detail extends VBox {
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2d3748;");
         header.getChildren().add(title);
         
-        // Table header
         GridPane headerGrid = new GridPane();
         headerGrid.setHgap(10);
         headerGrid.setPadding(new Insets(12, 20, 12, 20));
@@ -169,7 +166,6 @@ public class Detail extends VBox {
         
         VBox produitsList = new VBox(0);
         
-        // Total box
         HBox totalBox = new HBox();
         totalBox.setAlignment(Pos.CENTER_RIGHT);
         totalBox.setPadding(new Insets(20));
@@ -327,7 +323,6 @@ public class Detail extends VBox {
         telLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13px;");
         telBox.getChildren().addAll(telIcon, telLabel);
         
-        // Afficher l'ID de la commande pour info
         HBox idBox = new HBox(8);
         Label idIcon = new Label("🆔");
         Label idLabel = new Label("Commande #" + commandeId);
@@ -438,7 +433,6 @@ public class Detail extends VBox {
     
     private void refreshData() {
         loadData();
-        // Reconstruire les boutons d'action
         getChildren().remove(3);
         getChildren().add(createActionsBox());
     }

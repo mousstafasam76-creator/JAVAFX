@@ -1,58 +1,81 @@
 package com.inapp.controller.front;
 
 import com.inapp.model.Commande;
+import com.inapp.model.Client;
+import com.inapp.model.Produit;
 import com.inapp.service.CommandeService;
-import java.sql.SQLException;
-import java.time.LocalDate;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import java.util.List;
 import java.util.Map;
 
 public class CommandeController {
     
+    private static CommandeController instance;
     private CommandeService commandeService;
+    private ObservableList<Commande> commandes;
     
-    public CommandeController() {
-        this.commandeService = new CommandeService();
+    private CommandeController() {
+        commandeService = new CommandeService();
+        commandes = FXCollections.observableArrayList();
+        loadCommandes();
     }
     
-    public List<Commande> getAllCommandes() {
-        return commandeService.getAllCommandes();
+    public static CommandeController getInstance() {
+        if (instance == null) {
+            instance = new CommandeController();
+        }
+        return instance;
+    }
+    
+    public void loadCommandes() {
+        commandes.setAll(commandeService.getAllCommandes());
+    }
+    
+    public ObservableList<Commande> getCommandes() {
+        return commandes;
+    }
+    
+    public Commande findById(int id) {
+        return commandes.stream()
+                .filter(c -> c.getId() == id)
+                .findFirst()
+                .orElse(null);
+    }
+    
+    public void addCommande(Commande commande, List<Map<String, Object>> details) {
+        commandeService.addCommande(commande, details);
+        loadCommandes();
+    }
+    
+    public void updateCommande(Commande commande, List<Map<String, Object>> details) {
+        commandeService.updateCommande(commande, details);
+        loadCommandes();
+    }
+    
+    public void deleteCommande(int id) {
+        commandeService.deleteCommande(id);
+        loadCommandes();
+    }
+    
+    public void updateStatut(int commandeId, String statut) {
+        commandeService.updateStatut(commandeId, statut);
+        loadCommandes();
+    }
+    
+    public List<Client> getAllClients() {
+        return commandeService.getAllClients();
+    }
+    
+    public List<Produit> getAllProduits() {
+        return commandeService.getAllProduits();
     }
     
     public Map<String, Integer> getStats() {
         return commandeService.getStats();
     }
     
-    public Commande getCommandeById(int id) {
-        return commandeService.getCommandeById(id);
-    }
-    
-    public List<Map<String, Object>> getCommandeDetails(int commandeId) {
-        return commandeService.getCommandeDetails(commandeId);
-    }
-    
-    public List<com.inapp.model.Client> getAllClients() {
-        return commandeService.getAllClients();
-    }
-    
-    public List<com.inapp.model.Produit> getAllProduits() {
-        return commandeService.getAllProduits();
-    }
-    
-    public int addCommande(int clientId, int userId, LocalDate dateCommande, List<Map<String, Integer>> items) throws SQLException {
-        return commandeService.addCommande(clientId, userId, dateCommande, items);
-    }
-    
-    public void updateCommande(int commandeId, int clientId, LocalDate dateCommande, 
-                               List<Map<String, Integer>> items, List<Map<String, Object>> oldDetails) throws SQLException {
-        commandeService.updateCommande(commandeId, clientId, dateCommande, items, oldDetails);
-    }
-    
-    public void updateStatut(int commandeId, String newStatus) throws SQLException {
-        commandeService.updateStatut(commandeId, newStatus);
-    }
-    
-    public void deleteCommande(int commandeId) throws SQLException {
-        commandeService.deleteCommande(commandeId);
+    public void refresh() {
+        loadCommandes();
     }
 }

@@ -6,186 +6,94 @@ import com.inapp.model.Client;
 import com.inapp.model.Produit;
 import java.sql.*;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class CommandeService {
     
-    private Connection connection;
+    // ========== COMMANDES ==========
     
-    public CommandeService() {
-        try {
-            this.connection = DatabaseConfig.getConnection();
-            System.out.println("✅ CommandeService: Connexion BDD établie");
-        } catch (SQLException e) {
-            System.err.println("❌ CommandeService: Erreur de connexion - " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    // Récupérer toutes les commandes avec produits GROUP_CONCAT
     public List<Commande> getAllCommandes() {
         List<Commande> commandes = new ArrayList<>();
         String sql = """
-            SELECT 
-                c.id,
-                c.client_id,
-                CONCAT(cl.prenom, ' ', cl.nomc) as client_name,
-                cl.tel as client_tel,
-                IFNULL(c.facture_id, 0) as facture_id,
-                c.produit_id,
-                c.date_commande,
-                c.statut,
-                c.total_ttc,
-                c.created_by,
-                COALESCE(GROUP_CONCAT(DISTINCT CONCAT(p.nomp, ' (', d.quantite, ')') SEPARATOR ', '), 'Aucun produit') as produits
+            SELECT c.id, c.client_id, c.date_commande, c.statut, c.total_ttc,
+                   CONCAT(cl.prenom, ' ', cl.nomc) as client_name,
+                   cl.tel as client_tel,
+                   GROUP_CONCAT(CONCAT(p.nomp, ' (x', d.quantite, ')') SEPARATOR ', ') as produits
             FROM commandes c
             LEFT JOIN clients cl ON c.client_id = cl.id
             LEFT JOIN detail_commande d ON c.id = d.commande_id
             LEFT JOIN produits p ON d.produit_id = p.id
             GROUP BY c.id
             ORDER BY c.date_commande DESC
-        """;
+            """;
         
-        try (Statement stmt = connection.createStatement();
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
+            
             while (rs.next()) {
-                commandes.add(extractCommandeFromResultSet(rs));
+                Commande cmd = new Commande();
+                cmd.setId(rs.getInt("id"));
+                cmd.setClientId(rs.getInt("client_id"));
+                cmd.setClientName(rs.getString("client_name") != null ? rs.getString("client_name") : "Client inconnu");
+                cmd.setClientTel(rs.getString("client_tel"));
+                cmd.setDateCommande(rs.getDate("date_commande").toLocalDate());
+                cmd.setStatut(rs.getString("statut"));
+                cmd.setTotalTtc(rs.getInt("total_ttc"));
+                cmd.setProduits(rs.getString("produits") != null ? rs.getString("produits") : "");
+                commandes.add(cmd);
             }
-            System.out.println("📊 CommandeService: " + commandes.size() + " commandes chargées");
         } catch (SQLException e) {
-            System.err.println("❌ CommandeService: Erreur getAllCommandes - " + e.getMessage());
             e.printStackTrace();
         }
         return commandes;
     }
     
-    // Récupérer les statistiques
-    public Map<String, Integer> getStats() {
-        Map<String, Integer> stats = new HashMap<>();
-        String sql = """
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN statut = 'en_attente' THEN 1 ELSE 0 END) as attente,
-                SUM(CASE WHEN statut = 'livree' THEN 1 ELSE 0 END) as livree,
-                SUM(CASE WHEN statut = 'annulee' THEN 1 ELSE 0 END) as annulee
-            FROM commandes
-        """;
-        
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) {
-                stats.put("total", rs.getInt("total"));
-                stats.put("attente", rs.getInt("attente"));
-                stats.put("livree", rs.getInt("livree"));
-                stats.put("annulee", rs.getInt("annulee"));
-                System.out.println("📊 Stats: total=" + stats.get("total") + 
-                                   ", attente=" + stats.get("attente") + 
-                                   ", livree=" + stats.get("livree") + 
-                                   ", annulee=" + stats.get("annulee"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return stats;
-    }
-    
-    // Récupérer une commande par ID - VERSION SIMPLIFIÉE ET CORRIGÉE
     public Commande getCommandeById(int id) {
-        System.out.println("🔍 Recherche commande ID: " + id);
-        
-        // Requête simplifiée sans GROUP_CONCAT pour éviter les problèmes
         String sql = """
-            SELECT 
-                c.id,
-                c.client_id,
-                CONCAT(cl.prenom, ' ', cl.nomc) as client_name,
-                cl.tel as client_tel,
-                cl.email as client_email,
-                cl.adresse as client_adresse,
-                IFNULL(c.facture_id, 0) as facture_id,
-                c.produit_id,
-                c.date_commande,
-                c.statut,
-                c.total_ttc,
-                c.created_by
+            SELECT c.id, c.client_id, c.date_commande, c.statut, c.total_ttc,
+                   CONCAT(cl.prenom, ' ', cl.nomc) as client_name,
+                   cl.tel as client_tel
             FROM commandes c
             LEFT JOIN clients cl ON c.client_id = cl.id
             WHERE c.id = ?
-        """;
+            """;
         
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                // Récupérer les produits séparément
-                String produits = getProduitsForCommande(id);
-                
-                Commande cmd = new Commande(
-                    rs.getInt("id"),
-                    rs.getInt("client_id"),
-                    rs.getString("client_name") != null ? rs.getString("client_name") : "Client inconnu",
-                    rs.getString("client_tel"),
-                    rs.getInt("facture_id"),
-                    rs.getInt("produit_id"),
-                    rs.getDate("date_commande") != null ? rs.getDate("date_commande").toLocalDate() : null,
-                    rs.getString("statut"),
-                    rs.getInt("total_ttc"),
-                    rs.getInt("created_by"),
-                    produits
-                );
-                System.out.println("✅ Commande trouvée: ID=" + cmd.getId() + 
-                                   ", Client=" + cmd.getClientName() + 
-                                   ", Statut=" + cmd.getStatut() +
-                                   ", Total=" + cmd.getTotalTtc());
+                Commande cmd = new Commande();
+                cmd.setId(rs.getInt("id"));
+                cmd.setClientId(rs.getInt("client_id"));
+                cmd.setClientName(rs.getString("client_name") != null ? rs.getString("client_name") : "Client inconnu");
+                cmd.setClientTel(rs.getString("client_tel"));
+                cmd.setDateCommande(rs.getDate("date_commande").toLocalDate());
+                cmd.setStatut(rs.getString("statut"));
+                cmd.setTotalTtc(rs.getInt("total_ttc"));
                 return cmd;
-            } else {
-                System.out.println("❌ Aucune commande trouvée pour l'ID: " + id);
             }
         } catch (SQLException e) {
-            System.err.println("❌ Erreur SQL dans getCommandeById: " + e.getMessage());
             e.printStackTrace();
         }
         return null;
     }
     
-    // Récupérer les produits d'une commande (méthode séparée)
-    private String getProduitsForCommande(int commandeId) {
-        String sql = """
-            SELECT GROUP_CONCAT(DISTINCT CONCAT(p.nomp, ' (', d.quantite, ')') SEPARATOR ', ') as produits
-            FROM detail_commande d
-            LEFT JOIN produits p ON d.produit_id = p.id
-            WHERE d.commande_id = ?
-        """;
-        
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, commandeId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                String produits = rs.getString("produits");
-                return produits != null && !produits.isEmpty() ? produits : "Aucun produit";
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Erreur lors de la récupération des produits: " + e.getMessage());
-        }
-        return "Aucun produit";
-    }
-    
-    // Récupérer les détails des produits d'une commande
     public List<Map<String, Object>> getCommandeDetails(int commandeId) {
         List<Map<String, Object>> details = new ArrayList<>();
         String sql = """
-            SELECT d.id, d.produit_id, d.quantite, d.prix_unitaire, p.nomp as produit_nom
+            SELECT d.id, p.id as produit_id, p.nomp as produit_nom, 
+                   d.quantite, d.prix_unitaire
             FROM detail_commande d
-            LEFT JOIN produits p ON d.produit_id = p.id
+            JOIN produits p ON d.produit_id = p.id
             WHERE d.commande_id = ?
-        """;
+            """;
         
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, commandeId);
-            ResultSet rs = pstmt.executeQuery();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, commandeId);
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 Map<String, Object> detail = new HashMap<>();
                 detail.put("id", rs.getInt("id"));
@@ -195,52 +103,261 @@ public class CommandeService {
                 detail.put("prix_unitaire", rs.getInt("prix_unitaire"));
                 details.add(detail);
             }
-            System.out.println("📦 " + details.size() + " produits trouvés pour la commande #" + commandeId);
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return details;
     }
     
-    // Récupérer tous les clients
-    public List<Client> getAllClients() {
-        List<Client> clients = new ArrayList<>();
-        String sql = "SELECT id, prenom, nomc, tel, email, adresse FROM clients ORDER BY nomc";
+    // ========== MÉTHODES POUR ADD.JAVA ==========
+    
+    public int addCommande(int clientId, int userId, LocalDate date, List<Map<String, Integer>> items) {
+        int commandeId = -1;
+        String sqlCommande = "INSERT INTO commandes (client_id, created_by, date_commande, statut) VALUES (?, ?, ?, 'en_attente')";
+        String sqlDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
         
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                Client client = new Client(
-                    rs.getInt("id"),
-                    rs.getString("prenom"),
-                    rs.getString("nomc"),
-                    rs.getString("tel"),
-                    rs.getString("email"),
-                    rs.getString("adresse")
-                );
-                clients.add(client);
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlCommande, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, clientId);
+                ps.setInt(2, userId);
+                ps.setDate(3, java.sql.Date.valueOf(date));
+                ps.executeUpdate();
+                
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    commandeId = rs.getInt(1);
+                    
+                    try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
+                        for (Map<String, Integer> item : items) {
+                            psDetail.setInt(1, commandeId);
+                            psDetail.setInt(2, item.get("produit_id"));
+                            psDetail.setInt(3, item.get("quantite"));
+                            psDetail.setInt(4, item.get("prix_unitaire"));
+                            psDetail.addBatch();
+                        }
+                        psDetail.executeBatch();
+                    }
+                    
+                    updateTotalCommande(conn, commandeId);
+                }
             }
+            conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return clients;
+        return commandeId;
     }
     
-    // Récupérer tous les produits
+    // ========== MÉTHODES POUR EDIT.JAVA ==========
+    
+    public void updateCommande(int commandeId, int clientId, LocalDate date, 
+                               List<Map<String, Integer>> items, 
+                               List<Map<String, Object>> existingDetails) {
+        String sqlUpdateCommande = "UPDATE commandes SET client_id = ?, date_commande = ? WHERE id = ?";
+        String sqlDeleteDetails = "DELETE FROM detail_commande WHERE commande_id = ?";
+        String sqlInsertDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
+        
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCommande)) {
+                ps.setInt(1, clientId);
+                ps.setDate(2, java.sql.Date.valueOf(date));
+                ps.setInt(3, commandeId);
+                ps.executeUpdate();
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteDetails)) {
+                ps.setInt(1, commandeId);
+                ps.executeUpdate();
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlInsertDetail)) {
+                for (Map<String, Integer> item : items) {
+                    ps.setInt(1, commandeId);
+                    ps.setInt(2, item.get("produit_id"));
+                    ps.setInt(3, item.get("quantite"));
+                    ps.setInt(4, item.get("prix_unitaire"));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            
+            updateTotalCommande(conn, commandeId);
+            
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // ========== MÉTHODES STANDARD (avec objets Commande) ==========
+    
+    public void addCommande(Commande commande, List<Map<String, Object>> details) {
+        String sqlCommande = "INSERT INTO commandes (client_id, date_commande, statut, total_ttc) VALUES (?, ?, ?, ?)";
+        String sqlDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
+        
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlCommande, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, commande.getClientId());
+                ps.setDate(2, java.sql.Date.valueOf(commande.getDateCommande()));
+                ps.setString(3, commande.getStatut());
+                ps.setInt(4, commande.getTotalTtc());
+                ps.executeUpdate();
+                
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    int commandeId = rs.getInt(1);
+                    commande.setId(commandeId);
+                    
+                    try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
+                        for (Map<String, Object> detail : details) {
+                            psDetail.setInt(1, commandeId);
+                            psDetail.setInt(2, (int) detail.get("produit_id"));
+                            psDetail.setInt(3, (int) detail.get("quantite"));
+                            psDetail.setInt(4, (int) detail.get("prix_unitaire"));
+                            psDetail.addBatch();
+                        }
+                        psDetail.executeBatch();
+                    }
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void updateCommande(Commande commande, List<Map<String, Object>> details) {
+        String sqlUpdateCommande = "UPDATE commandes SET client_id = ?, date_commande = ?, statut = ?, total_ttc = ? WHERE id = ?";
+        String sqlDeleteDetails = "DELETE FROM detail_commande WHERE commande_id = ?";
+        String sqlInsertDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
+        
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCommande)) {
+                ps.setInt(1, commande.getClientId());
+                ps.setDate(2, java.sql.Date.valueOf(commande.getDateCommande()));
+                ps.setString(3, commande.getStatut());
+                ps.setInt(4, commande.getTotalTtc());
+                ps.setInt(5, commande.getId());
+                ps.executeUpdate();
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteDetails)) {
+                ps.setInt(1, commande.getId());
+                ps.executeUpdate();
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlInsertDetail)) {
+                for (Map<String, Object> detail : details) {
+                    ps.setInt(1, commande.getId());
+                    ps.setInt(2, (int) detail.get("produit_id"));
+                    ps.setInt(3, (int) detail.get("quantite"));
+                    ps.setInt(4, (int) detail.get("prix_unitaire"));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void deleteCommande(int id) {
+        String sqlDeleteDetails = "DELETE FROM detail_commande WHERE commande_id = ?";
+        String sqlDeleteCommande = "DELETE FROM commandes WHERE id = ?";
+        
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteDetails)) {
+                ps.setInt(1, id);
+                ps.executeUpdate();
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteCommande)) {
+                ps.setInt(1, id);
+                ps.executeUpdate();
+            }
+            
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void updateStatut(int commandeId, String statut) {
+        String sql = "UPDATE commandes SET statut = ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, statut);
+            ps.setInt(2, commandeId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // ========== MÉTHODES PRIVÉES ==========
+    
+    private void updateTotalCommande(Connection conn, int commandeId) throws SQLException {
+        String sql = "UPDATE commandes SET total_ttc = (SELECT COALESCE(SUM(quantite * prix_unitaire), 0) FROM detail_commande WHERE commande_id = ?) WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, commandeId);
+            ps.setInt(2, commandeId);
+            ps.executeUpdate();
+        }
+    }
+    
+    // ========== STATISTIQUES ==========
+    
+    public Map<String, Integer> getStats() {
+        Map<String, Integer> stats = new HashMap<>();
+        String sql = "SELECT statut, COUNT(*) as count FROM commandes GROUP BY statut";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            int total = 0;
+            while (rs.next()) {
+                String statut = rs.getString("statut");
+                int count = rs.getInt("count");
+                stats.put(statut, count);
+                total += count;
+            }
+            stats.put("total", total);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return stats;
+    }
+    
+    // ========== PRODUITS ==========
+    
     public List<Produit> getAllProduits() {
         List<Produit> produits = new ArrayList<>();
-        String sql = "SELECT id, nomp, prix, quantite FROM produits ORDER BY nomp";
+        String sql = "SELECT id, nomp, prix, quantite FROM produits WHERE quantite > 0 ORDER BY nomp";
         
-        try (Statement stmt = connection.createStatement();
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
+            
             while (rs.next()) {
-                Produit produit = new Produit(
-                    rs.getInt("id"),
-                    rs.getString("nomp"),
-                    rs.getDouble("prix"),
-                    rs.getInt("quantite")
-                );
-                produits.add(produit);
+                Produit p = new Produit();
+                p.setId(rs.getInt("id"));
+                p.setNomp(rs.getString("nomp"));
+                p.setPrix(rs.getDouble("prix"));
+                p.setQuantite(rs.getInt("quantite"));
+                produits.add(p);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -248,220 +365,41 @@ public class CommandeService {
         return produits;
     }
     
-    // Créer une commande
-    public int addCommande(int clientId, int userId, LocalDate dateCommande, List<Map<String, Integer>> items) throws SQLException {
-        connection.setAutoCommit(false);
-        int commandeId = -1;
-        
-        try {
-            int total = 0;
-            for (Map<String, Integer> item : items) {
-                total += getPrixByProduitId(item.get("id")) * item.get("qty");
-            }
-            int premierProduitId = items.get(0).get("id");
-            
-            String sqlCommande = "INSERT INTO commandes (client_id, created_by, date_commande, statut, total_ttc, produit_id) VALUES (?, ?, ?, 'en_attente', ?, ?)";
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlCommande, Statement.RETURN_GENERATED_KEYS)) {
-                pstmt.setInt(1, clientId);
-                pstmt.setInt(2, userId);
-                pstmt.setDate(3, Date.valueOf(dateCommande));
-                pstmt.setInt(4, total);
-                pstmt.setInt(5, premierProduitId);
-                pstmt.executeUpdate();
-                
-                ResultSet rs = pstmt.getGeneratedKeys();
-                if (rs.next()) {
-                    commandeId = rs.getInt(1);
-                }
-            }
-            
-            for (Map<String, Integer> item : items) {
-                int produitId = item.get("id");
-                int quantite = item.get("qty");
-                int prix = getPrixByProduitId(produitId);
-                
-                String sqlDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlDetail)) {
-                    pstmt.setInt(1, commandeId);
-                    pstmt.setInt(2, produitId);
-                    pstmt.setInt(3, quantite);
-                    pstmt.setInt(4, prix);
-                    pstmt.executeUpdate();
-                }
-                
-                String sqlStock = "UPDATE produits SET quantite = quantite - ? WHERE id = ?";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlStock)) {
-                    pstmt.setInt(1, quantite);
-                    pstmt.setInt(2, produitId);
-                    pstmt.executeUpdate();
-                }
-            }
-            
-            connection.commit();
-            System.out.println("✅ Commande #" + commandeId + " créée");
+    public void updateProduitStock(int produitId, int quantite) {
+        String sql = "UPDATE produits SET quantite = quantite - ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quantite);
+            ps.setInt(2, produitId);
+            ps.executeUpdate();
         } catch (SQLException e) {
-            connection.rollback();
-            throw e;
-        } finally {
-            connection.setAutoCommit(true);
+            e.printStackTrace();
         }
-        
-        return commandeId;
     }
     
-    // Mettre à jour une commande
-    public void updateCommande(int commandeId, int clientId, LocalDate dateCommande, 
-                               List<Map<String, Integer>> items, List<Map<String, Object>> oldDetails) throws SQLException {
-        connection.setAutoCommit(false);
+    // ========== CLIENTS ==========
+    
+    public List<Client> getAllClients() {
+        List<Client> clients = new ArrayList<>();
+        String sql = "SELECT id, prenom, nomc, tel, email, adresse FROM clients ORDER BY prenom";
         
-        try {
-            // Restaurer les anciens stocks
-            for (Map<String, Object> old : oldDetails) {
-                int produitId = (int) old.get("produit_id");
-                int quantite = (int) old.get("quantite");
-                String sqlRestore = "UPDATE produits SET quantite = quantite + ? WHERE id = ?";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlRestore)) {
-                    pstmt.setInt(1, quantite);
-                    pstmt.setInt(2, produitId);
-                    pstmt.executeUpdate();
-                }
-            }
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             
-            // Supprimer les anciens détails
-            String sqlDeleteDetails = "DELETE FROM detail_commande WHERE commande_id = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlDeleteDetails)) {
-                pstmt.setInt(1, commandeId);
-                pstmt.executeUpdate();
+            while (rs.next()) {
+                Client client = new Client();
+                client.setId(rs.getInt("id"));
+                client.setPrenom(rs.getString("prenom"));
+                client.setNom(rs.getString("nomc"));
+                client.setTelephone(rs.getString("tel"));
+                client.setEmail(rs.getString("email"));
+                client.setAdresse(rs.getString("adresse"));
+                clients.add(client);
             }
-            
-            // Calculer le nouveau total
-            int total = 0;
-            for (Map<String, Integer> item : items) {
-                total += getPrixByProduitId(item.get("id")) * item.get("qty");
-            }
-            
-            // Mettre à jour la commande
-            String sqlCommande = "UPDATE commandes SET client_id = ?, date_commande = ?, total_ttc = ?, produit_id = ? WHERE id = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlCommande)) {
-                pstmt.setInt(1, clientId);
-                pstmt.setDate(2, Date.valueOf(dateCommande));
-                pstmt.setInt(3, total);
-                pstmt.setInt(4, items.get(0).get("id"));
-                pstmt.setInt(5, commandeId);
-                pstmt.executeUpdate();
-            }
-            
-            // Insérer les nouveaux détails et mettre à jour les stocks
-            for (Map<String, Integer> item : items) {
-                int produitId = item.get("id");
-                int quantite = item.get("qty");
-                int prix = getPrixByProduitId(produitId);
-                
-                String sqlDetail = "INSERT INTO detail_commande (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlDetail)) {
-                    pstmt.setInt(1, commandeId);
-                    pstmt.setInt(2, produitId);
-                    pstmt.setInt(3, quantite);
-                    pstmt.setInt(4, prix);
-                    pstmt.executeUpdate();
-                }
-                
-                String sqlStock = "UPDATE produits SET quantite = quantite - ? WHERE id = ?";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlStock)) {
-                    pstmt.setInt(1, quantite);
-                    pstmt.setInt(2, produitId);
-                    pstmt.executeUpdate();
-                }
-            }
-            
-            connection.commit();
-            System.out.println("✅ Commande #" + commandeId + " mise à jour");
         } catch (SQLException e) {
-            connection.rollback();
-            throw e;
-        } finally {
-            connection.setAutoCommit(true);
+            e.printStackTrace();
         }
-    }
-    
-    // Mettre à jour le statut d'une commande
-    public void updateStatut(int commandeId, String newStatus) throws SQLException {
-        String sql = "UPDATE commandes SET statut = ? WHERE id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, newStatus);
-            pstmt.setInt(2, commandeId);
-            pstmt.executeUpdate();
-            System.out.println("🔄 Statut de la commande #" + commandeId + " mis à jour: " + newStatus);
-        }
-    }
-    
-    // Supprimer une commande
-    public void deleteCommande(int commandeId) throws SQLException {
-        connection.setAutoCommit(false);
-        
-        try {
-            List<Map<String, Object>> details = getCommandeDetails(commandeId);
-            
-            for (Map<String, Object> detail : details) {
-                int produitId = (int) detail.get("produit_id");
-                int quantite = (int) detail.get("quantite");
-                String sqlStock = "UPDATE produits SET quantite = quantite + ? WHERE id = ?";
-                try (PreparedStatement pstmt = connection.prepareStatement(sqlStock)) {
-                    pstmt.setInt(1, quantite);
-                    pstmt.setInt(2, produitId);
-                    pstmt.executeUpdate();
-                }
-            }
-            
-            String sqlDeleteDetails = "DELETE FROM detail_commande WHERE commande_id = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlDeleteDetails)) {
-                pstmt.setInt(1, commandeId);
-                pstmt.executeUpdate();
-            }
-            
-            String sqlDelete = "DELETE FROM commandes WHERE id = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlDelete)) {
-                pstmt.setInt(1, commandeId);
-                pstmt.executeUpdate();
-            }
-            
-            connection.commit();
-            System.out.println("🗑️ Commande #" + commandeId + " supprimée");
-        } catch (SQLException e) {
-            connection.rollback();
-            throw e;
-        } finally {
-            connection.setAutoCommit(true);
-        }
-    }
-    
-    // Récupérer le prix d'un produit
-    private int getPrixByProduitId(int produitId) throws SQLException {
-        String sql = "SELECT prix FROM produits WHERE id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, produitId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("prix");
-            }
-        }
-        return 0;
-    }
-    
-    private Commande extractCommandeFromResultSet(ResultSet rs) throws SQLException {
-        LocalDate date = rs.getDate("date_commande") != null ? rs.getDate("date_commande").toLocalDate() : null;
-        return new Commande(
-            rs.getInt("id"),
-            rs.getInt("client_id"),
-            rs.getString("client_name") != null ? rs.getString("client_name") : "Client inconnu",
-            rs.getString("client_tel"),
-            rs.getInt("facture_id"),
-            rs.getInt("produit_id"),
-            date,
-            rs.getString("statut"),
-            rs.getInt("total_ttc"),
-            rs.getInt("created_by"),
-            rs.getString("produits") != null ? rs.getString("produits") : "Aucun produit"
-        );
+        return clients;
     }
 }
