@@ -32,7 +32,8 @@ public class NavigationManager {
         this.history = new Stack<>();
         this.rootContainer = new StackPane();
         this.currentParams = new HashMap<>();
-        this.currentScene = new Scene(rootContainer, 1400, 1000);
+        // ✅ FENETRE REDUITE : 1200x800 au lieu de 1400x1000
+        this.currentScene = new Scene(rootContainer, 1200, 800);
         
         mainLayout = new BorderPane();
         mainLayout.setLeft(new Sidebar(this));
@@ -42,20 +43,21 @@ public class NavigationManager {
             String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
             if (cssPath != null) {
                 this.currentScene.getStylesheets().add(cssPath);
-                System.out.println("CSS chargé: " + cssPath);
+                System.out.println("CSS charge: " + cssPath);
             }
         } catch (Exception e) {
             System.out.println("Erreur chargement CSS: " + e.getMessage());
         }
         
         this.primaryStage.setScene(currentScene);
-        this.primaryStage.setMinHeight(700);
-        this.primaryStage.setMinWidth(1200);
+        // ✅ TAILLE MINIMALE REDUITE
+        this.primaryStage.setMinHeight(200);
+        this.primaryStage.setMinWidth(500);
     }
     
     public void registerView(String name, Parent view) {
         views.put(name, view);
-        System.out.println("✅ Vue enregistrée: " + name);
+        System.out.println("Vue enregistree: " + name);
     }
     
     public Parent getView(String name) {
@@ -70,15 +72,18 @@ public class NavigationManager {
         this.contentArea = area;
     }
     
+    public BorderPane getContentArea() {
+        return this.contentArea;
+    }
+    
     public void registerProtectedContent(String name, Parent content) {
         contentViews.put(name, content);
-        System.out.println("✅ Contenu protégé enregistré: " + name);
+        System.out.println("Contenu protege enregistre: " + name);
     }
     
     public void navigateTo(String name) {
-        System.out.println("📍 Navigation vers: " + name);
+        System.out.println("Navigation vers: " + name);
         
-        // Gérer les URLs avec paramètres (ex: clientView?id=1)
         String baseName = name;
         Map<String, String> params = new HashMap<>();
         
@@ -92,8 +97,8 @@ public class NavigationManager {
                     params.put(keyValue[0], keyValue[1]);
                 }
             }
-            // Si c'est une vue client avec paramètres, utiliser navigateToWithParams
-            if (baseName.equals("clientView") || baseName.equals("clientEdit")) {
+            if (baseName.equals("clientView") || baseName.equals("clientEdit") ||
+                baseName.equals("categoryDetail") || baseName.equals("categoryEdit") || baseName.equals("categoryDelete")) {
                 navigateToWithParams(baseName, params);
                 return;
             }
@@ -101,7 +106,6 @@ public class NavigationManager {
         
         String fullName = name;
         
-        // Extraire le nom de base si c'est une vue avec paramètres (ex: commandeDetails_1)
         if (name.contains("_")) {
             String[] parts = name.split("_");
             if (parts.length == 2) {
@@ -115,30 +119,27 @@ public class NavigationManager {
             }
         }
         
-        // Vérifier d'abord si c'est une vue avec paramètres (commandeDetails_1)
         if (contentViews.containsKey(fullName)) {
             Parent content = contentViews.get(fullName);
             if (contentArea != null) {
                 contentArea.setCenter(content);
-                System.out.println("📦 Contenu avec paramètres affiché dans contentArea: " + fullName);
+                System.out.println("Contenu avec parametres affiche dans contentArea: " + fullName);
                 history.push(fullName);
             }
             return;
         }
         
-        // Vérifier si c'est une vue protégée (sans paramètres)
         if (contentViews.containsKey(baseName)) {
             Parent content = contentViews.get(baseName);
             if (contentArea != null) {
                 contentArea.setCenter(content);
-                System.out.println("📦 Contenu affiché dans contentArea: " + baseName);
+                System.out.println("Contenu affiche dans contentArea: " + baseName);
                 history.push(baseName);
             } else {
                 mainLayout.setCenter(content);
-                System.out.println("📦 Contenu affiché dans mainLayout: " + baseName);
+                System.out.println("Contenu affiche dans mainLayout: " + baseName);
             }
             
-            // S'assurer que mainLayout est affiché
             if (rootContainer.getChildren().isEmpty() || rootContainer.getChildren().get(0) != mainLayout) {
                 final BorderPane finalLayout = mainLayout;
                 final String finalBaseName = baseName;
@@ -153,7 +154,7 @@ public class NavigationManager {
                     fadeIn.setToValue(1);
                     fadeIn.play();
                     primaryStage.sizeToScene();
-                    System.out.println("✅ Navigation terminée vers: " + finalBaseName);
+                    System.out.println("Navigation terminee vers: " + finalBaseName);
                 });
                 fadeOut.play();
             }
@@ -175,17 +176,17 @@ public class NavigationManager {
                 fadeIn.setToValue(1);
                 fadeIn.play();
                 primaryStage.sizeToScene();
-                System.out.println("✅ Navigation terminée vers: " + finalBaseName);
+                System.out.println("Navigation terminee vers: " + finalBaseName);
             });
             fadeOut.play();
         } else {
-            System.err.println("❌ View not found: " + name);
-            System.out.println("📋 Vues disponibles: " + contentViews.keySet());
+            System.err.println("View not found: " + name);
+            System.out.println("Vues disponibles: " + contentViews.keySet());
         }
     }
     
     public void navigateToWithParams(String baseName, Map<String, String> params) {
-        System.out.println("🔍 Navigation avec paramètres vers: " + baseName);
+        System.out.println("Navigation avec parametres vers: " + baseName);
         
         if (params == null || !params.containsKey("id")) {
             navigateTo(baseName);
@@ -193,9 +194,8 @@ public class NavigationManager {
         }
         
         String viewName = baseName + "_" + params.get("id");
-        System.out.println("🔍 Vue avec paramètres: " + viewName);
+        System.out.println("Vue avec parametres: " + viewName);
         
-        // Vérifier si la vue existe déjà
         if (!contentViews.containsKey(viewName)) {
             Parent newView = null;
             try {
@@ -203,47 +203,61 @@ public class NavigationManager {
                 switch (baseName) {
                     case "commandeDetail":
                     case "commandeDetails":
-                        System.out.println("📄 Création de la vue Detail pour la commande #" + id);
+                        System.out.println("Creation de la vue Detail pour la commande #" + id);
                         newView = new com.inapp.view.front.commande.Detail(this, id);
                         break;
                         
                     case "commandeEdit":
-                        System.out.println("✏️ Création de la vue Edit pour la commande #" + id);
+                        System.out.println("Creation de la vue Edit pour la commande #" + id);
                         newView = new com.inapp.view.front.commande.Edit(this, id);
                         break;
                         
                     case "commandeDelete":
-                        System.out.println("🗑️ Création de la vue Delete pour la commande #" + id);
+                        System.out.println("Creation de la vue Delete pour la commande #" + id);
                         newView = new com.inapp.view.front.commande.Delete(this, id);
                         break;
-                        
+                    
                     case "clientView":
-                        System.out.println("👤 Création de la vue ViewClient pour le client #" + id);
+                        System.out.println("Creation de la vue ViewClient pour le client #" + id);
                         newView = new com.inapp.view.front.Client.ViewClientView(this, id);
                         break;
                         
                     case "clientEdit":
-                        System.out.println("✏️ Création de la vue EditClient pour le client #" + id);
+                        System.out.println("Creation de la vue EditClient pour le client #" + id);
                         newView = new com.inapp.view.front.Client.EditClientView(this, id);
+                        break;
+                    
+                    case "categoryDetail":
+                        System.out.println("Creation de la vue Detail pour la categorie #" + id);
+                        newView = new com.inapp.view.front.Category.CategoryDetailView(this, id);
+                        break;
+                        
+                    case "categoryEdit":
+                        System.out.println("Creation de la vue Edit pour la categorie #" + id);
+                        newView = new com.inapp.view.front.Category.CategoryEditView(this, id);
+                        break;
+                        
+                    case "categoryDelete":
+                        System.out.println("Creation de la vue Delete pour la categorie #" + id);
+                        newView = new com.inapp.view.front.Category.CategoryDeleteView(this, id);
                         break;
                         
                     default:
-                        System.err.println("❌ View inconnue: " + baseName);
+                        System.err.println("View inconnue: " + baseName);
                         return;
                 }
             } catch (Exception e) {
-                System.err.println("❌ Erreur création vue: " + e.getMessage());
+                System.err.println("Erreur creation vue: " + e.getMessage());
                 e.printStackTrace();
                 return;
             }
             
             if (newView != null) {
                 contentViews.put(viewName, newView);
-                System.out.println("✅ Vue enregistrée: " + viewName);
+                System.out.println("Vue enregistree: " + viewName);
             }
         }
         
-        // Naviguer vers la vue avec l'ID
         navigateTo(viewName);
     }
     
@@ -265,6 +279,13 @@ public class NavigationManager {
     
     public Stage getStage() {
         return primaryStage;
+    }
+    
+    public void clearAllViews() {
+        contentViews.clear();
+        history.clear();
+        currentParams.clear();
+        System.out.println("Cache vide");
     }
     
     public void clearParams() {
